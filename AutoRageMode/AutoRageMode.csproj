@@ -30,7 +30,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="IdleSlayerMods.Common">
-      <HintPath>..\IdleSlayerMods.Common\bin\Release\net6.0\IdleSlayerMods.Common.dll</HintPath>
+      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\BepInEx\plugins\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Il2Cppmscorlib">

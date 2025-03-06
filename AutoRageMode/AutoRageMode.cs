@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using BepInEx.Unity.IL2CPP.Utils;
+using System.Collections;
+using UnityEngine;
 
 namespace AutoRageMode;
 
@@ -49,9 +51,11 @@ public class AutoRage : MonoBehaviour
         }
     }
 
-    /* Section used for debugging purposes - Triggers horde event manually
-     *  private void Update()
-        {
+    
+    /*
+     * // Section used for debugging purposes - Triggers horde event manually
+       private void Update()
+       {
             if (Input.GetKeyDown(KeyCode.J))
             {
                 Plugin.Log.LogInfo("Manual Horde event trigger!");
@@ -88,11 +92,18 @@ public class AutoRage : MonoBehaviour
         if (!_hordeModeOnly) return; 
         if (!_autoRageModeEnabled) return; 
         if (_rageMode == null) return; 
-        if (_rageMode.currentCd > 0) return; 
+        if (_rageMode.currentCd > 0) return;
 
-//        Plugin.Log.LogDebug("Horde Mode started! Activating Auto Rage Mode...");
+        Instance.StartCoroutine(Instance.DelayedRageModeActivation());
+    }
+
+    private IEnumerator DelayedRageModeActivation()
+    {
+        //Plugin.Log.LogDebug("Horde Mode started! Activating Auto Rage Mode...");
+        yield return new WaitForSeconds(2f);
         _rageMode.Activate();
     }
+
 
     private static void ToggleRageMode(string type, ref bool state, bool showPopup)
     {

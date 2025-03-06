@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35825.156 d17.13
+VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoRageMode", "..\AutoRageMode\AutoRageMode.csproj", "{09ED3E44-CAC2-04E2-85BF-A8FA818FD9B6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdleSlayerMods.Common", "..\IdleSlayerMods.Common\IdleSlayerMods.Common.csproj", "{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,14 +21,6 @@ Global
 		{09ED3E44-CAC2-04E2-85BF-A8FA818FD9B6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{09ED3E44-CAC2-04E2-85BF-A8FA818FD9B6}.Release|x64.ActiveCfg = Release|x64
 		{09ED3E44-CAC2-04E2-85BF-A8FA818FD9B6}.Release|x64.Build.0 = Release|x64
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Debug|x64.Build.0 = Debug|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Release|x64.ActiveCfg = Release|Any CPU
-		{BE39DDA7-6B53-3FE1-8E54-DF691A75168E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
