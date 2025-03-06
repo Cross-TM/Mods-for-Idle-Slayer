@@ -1,3 +1,5 @@
+# Library belongs to https://github.com/legovader09/Idle-Slayer-Mods
+
 # Core library for my idle slayer mods
 
 ## Getting started
