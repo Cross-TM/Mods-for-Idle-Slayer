@@ -29,7 +29,7 @@ public class Plugin : BasePlugin
         SceneManager.sceneLoaded += (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
         Log.LogInfo($"Auto Rage Mode Plugin is loaded!");
 
-        var harmony = new Harmony("com.yourname.autoragemode");
+        var harmony = new Harmony("com.CrossTM.AutoRageMode");
         harmony.PatchAll();
     }
 
