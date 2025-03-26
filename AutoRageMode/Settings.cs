@@ -1,24 +1,23 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using IdleSlayerMods.Common.Config;
-using System.Numerics;
 using UnityEngine;
 
 namespace AutoRageMode;
 
-internal sealed class Settings(ConfigFile cfg) : BaseConfig(cfg)
+internal sealed class Settings(string configName) : BaseConfig(configName)
 {
-    internal ConfigEntry<KeyCode> RageToggleKey;
-    internal ConfigEntry<KeyCode> HordeToggleKey;
-    internal ConfigEntry<KeyCode> SoulsHordeToggleKey;
+    internal MelonPreferences_Entry<KeyCode> RageToggleKey;
+    internal MelonPreferences_Entry<KeyCode> HordeToggleKey;
+    internal MelonPreferences_Entry<KeyCode> SoulsHordeToggleKey;
 
-    internal ConfigEntry<bool> RageShowPopup;
-    internal ConfigEntry<bool> HordeShowPopup;
-    internal ConfigEntry<bool> SoulsHordeShowPopup;
-    internal ConfigEntry<bool> DebugMode;
+    internal MelonPreferences_Entry<bool> RageShowPopup;
+    internal MelonPreferences_Entry<bool> HordeShowPopup;
+    internal MelonPreferences_Entry<bool> SoulsHordeShowPopup;
+    internal MelonPreferences_Entry<bool> DebugMode;
 
     protected override void SetBindings()
     {
-        RageToggleKey = Bind("Auto Rage Mode", "RageToggleKey", KeyCode.R,
+        RageToggleKey = Bind("Auto Rage Mode", "RageToggleKey", KeyCode.T,
             "The key bind for toggling auto rage mode");
         RageShowPopup = Bind("Auto Rage Mode", "RageShowPopup", true,
             "Show a message popup to indicate whether auto Rage Mode has been toggled.");

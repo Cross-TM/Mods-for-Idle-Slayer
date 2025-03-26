@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using BepInEx.Unity.IL2CPP.Utils;
 using System.Reflection;
 using System.Text;
+using MelonLoader;
+using Il2Cpp;
 
 namespace KillMimics;
 
@@ -24,6 +25,10 @@ public class ChestKiller : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.O))
+        {
+            _chestHuntManager.StartEvent();
+        }
 
         if (!GameState.IsChestHunt())
         {
@@ -37,7 +42,7 @@ public class ChestKiller : MonoBehaviour
                 if (!_chestHuntManager.IsVisible() || _chestHuntManager.chests.Count == 0)
                     return; // Exit early if chests are not ready
 
-                Plugin.Log.LogInfo("Chest Event Started!");
+                Melon<Plugin>.Logger.Msg("Chest Event Started!");
                 OpenChests();
             }
 
@@ -53,7 +58,8 @@ public class ChestKiller : MonoBehaviour
                     return; // Exit early if perfect chest is not ready
 
                 OpenPerfectChests();
-                Plugin.Log.LogDebug("Perfect Chests opened!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Perfect Chests opened!");
 
                 GameObject cb = _chestHuntManager.closeButton;
                 if (cb != null)
@@ -61,7 +67,8 @@ public class ChestKiller : MonoBehaviour
                     Image image = cb.GetComponent<Image>();
                     if (image != null && image.isActiveAndEnabled)
                     {
-                        Plugin.Log.LogDebug("Close button's Image component is active and enabled. Closing chest event.");
+                        if (Debug.isDebugBuild)
+                            Melon<Plugin>.Logger.Msg("Close button's Image component is active and enabled. Closing chest event.");
                         _chestHuntManager.Close();
                         _perfectChestOpenerCompleted = true;
                     }
@@ -82,12 +89,14 @@ public class ChestKiller : MonoBehaviour
                 var chestComponent = @object.GetComponent<ChestObject>();
                 if (chestComponent != null)
                 {
-                    Plugin.Log.LogDebug($"Opening chest of type: {chest.type}");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"Opening chest of type: {chest.type}");
                     chestComponent.Open(true);
                 }
                 else
                 {
-                    Plugin.Log.LogError($"ChestObject component not found on {chest.type}!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"ChestObject component not found on {chest.type}!");
                 }
             }
         }
@@ -109,29 +118,34 @@ public class ChestKiller : MonoBehaviour
 
         if (bestChest != null)
         {
-            Plugin.Log.LogDebug($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
             var chestObj = bestChest.chestObject;
             if (chestObj != null)
             {
                 ChestObject chestComponent = chestObj.GetComponent<ChestObject>();
                 if (chestComponent != null)
                 {
-                    Plugin.Log.LogDebug("Opening the highest multiplier chest.");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Opening the highest multiplier chest.");
                     chestComponent.Open(true);
                 }
                 else
                 {
-                    Plugin.Log.LogError("ChestObject component not found on the highest multiplier chest!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("ChestObject component not found on the highest multiplier chest!");
                 }
             }
             else
             {
-                Plugin.Log.LogError("Highest multiplier chest has no chestObject!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Highest multiplier chest has no chestObject!");
             }
         }
         else
         {
-            Plugin.Log.LogError("No multiplier chests found.");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("No multiplier chests found.");
         }
 
         foreach (var chest in _chestHuntManager.chests)
@@ -144,12 +158,14 @@ public class ChestKiller : MonoBehaviour
                 var chestComponent = @object.GetComponent<ChestObject>();
                 if (chestComponent != null)
                 {
-                    Plugin.Log.LogDebug($"Opening chest of type: {chest.type}");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"Opening chest of type: {chest.type}");
                     chestComponent.Open(true);
                 }
                 else
                 {
-                    Plugin.Log.LogError($"ChestObject component not found on {chest.type}!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"ChestObject component not found on {chest.type}!");
                 }
             }
         }
@@ -161,19 +177,22 @@ public class ChestKiller : MonoBehaviour
         {
             if (perfectChest.multiplier == 4)
             {
-                Plugin.Log.LogDebug("Opening perfect chest with multiplier 4...");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Opening perfect chest with multiplier 4...");
                 var @object = perfectChest.perfectChestObject;
                 if (!@object) continue;
 
                 var perfectChestComponent = @object.GetComponent<PerfectChestObject>();
                 if (perfectChestComponent != null)
                 {
-                    Plugin.Log.LogDebug("Opening perfect chest...");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Opening perfect chest...");
                     perfectChestComponent.Open(true);
                 }
                 else
                 {
-                    Plugin.Log.LogError("PerfectChestObject component not found!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("PerfectChestObject component not found!");
                 }
             }
         }

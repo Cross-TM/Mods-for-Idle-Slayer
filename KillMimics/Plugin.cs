@@ -1,38 +1,41 @@
 ﻿using UnityEngine;
 using UnityEngine.SceneManagement;
-using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Unity.IL2CPP;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine.Events;
+using IdleSlayerMods.Common;
+using MelonLoader;
+using MyPluginInfo = KillMimics.MyPluginInfo;
+using Plugin = KillMimics.Plugin;
 
+[assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
+[assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
 namespace KillMimics;
 
-[BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-[BepInDependency("IdleSlayerMods.Common")]
-// ReSharper disable once ClassNeverInstantiated.Global
-public class Plugin : BasePlugin
+public class Plugin : MelonMod
 {
-    internal new static ManualLogSource Log;
     internal static Settings Settings;
+    internal static ModHelper ModHelperInstance;
 
-    public override void Load()
+    public override void OnInitializeMelon()
     {
-        Log = base.Log;
-        Settings = new(Config);
         ClassInjector.RegisterTypeInIl2Cpp<ChestKiller>();
-        
-        SceneManager.sceneLoaded += (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
-        Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+        Settings = new(MyPluginInfo.PLUGIN_GUID);
+        LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+        ModHelper.ModHelperMounted += SetModHelperInstance;
 
+        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
+        harmony.PatchAll();
     }
 
-    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
+
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
-        if (scene.name != "Game") return;
+        if (sceneName != "Game") return;
+
         var chestHunt = GameObject.Find("Chest Hunt");
-        if (chestHunt) chestHunt.AddComponent<ChestKiller>();
-        SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
+        if (chestHunt)
+            chestHunt.AddComponent<ChestKiller>();
     }
 }

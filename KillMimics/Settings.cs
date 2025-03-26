@@ -1,13 +1,15 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using IdleSlayerMods.Common.Config;
+using UnityEngine;
+
 
 namespace KillMimics;
 
-internal sealed class Settings(ConfigFile cfg) : BaseConfig(cfg)
+internal sealed class Settings(string configName) : BaseConfig(configName)
 {
-    internal ConfigEntry<bool> ShouldRevealMultipliers;
-    internal ConfigEntry<bool> ShouldRevealDuplicator;
-    internal ConfigEntry<bool> ShouldRevealArmoryChest;
+    internal MelonPreferences_Entry<bool> ShouldRevealMultipliers;
+    internal MelonPreferences_Entry<bool> ShouldRevealDuplicator;
+    internal MelonPreferences_Entry<bool> ShouldRevealArmoryChest;
 
     protected override void SetBindings()
     {

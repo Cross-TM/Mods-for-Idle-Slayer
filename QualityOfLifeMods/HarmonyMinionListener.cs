@@ -1,8 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-using QualityOfLifeMods;
-using System.Linq;
-using BepInEx.Logging;
+using MelonLoader;
+using Il2Cpp;
 
 namespace QualityOfLifeMods
 {
@@ -15,7 +14,8 @@ namespace QualityOfLifeMods
         {
             if (!__result && MinionSender.Instance.MinionSenderEnabled)
             {
-                Plugin.Log.LogDebug("Some minions are not working!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Some minions are not working!");
                 MinionSender.Instance.SendMinions();
             }
         }
@@ -29,7 +29,8 @@ namespace QualityOfLifeMods
         {
             if (__result && MinionSender.Instance.MinionSenderEnabled)
             {
-                Plugin.Log.LogDebug("Minions are ready to be claimed!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Minions are ready to be claimed!");
                 MinionSender.Instance.ClaimMinions();
             }
         }

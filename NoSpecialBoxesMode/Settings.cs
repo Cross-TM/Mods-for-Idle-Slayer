@@ -1,15 +1,15 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using IdleSlayerMods.Common.Config;
 using UnityEngine;
 
 namespace NoSpecialBoxesMode;
 
-internal sealed class Settings(ConfigFile cfg) : BaseConfig(cfg)
+internal sealed class Settings(string configName) : BaseConfig(configName)
 {
-    internal ConfigEntry<KeyCode> SpecialBoxesToggleKey;
-    internal ConfigEntry<KeyCode> BonusModeToggleKey;
-    internal ConfigEntry<bool> SpecialBoxesShowPopup;
-    internal ConfigEntry<bool> BonusModeShowPopup;
+    internal MelonPreferences_Entry<KeyCode> SpecialBoxesToggleKey;
+    internal MelonPreferences_Entry<KeyCode> BonusModeToggleKey;
+    internal MelonPreferences_Entry<bool> SpecialBoxesShowPopup;
+    internal MelonPreferences_Entry<bool> BonusModeShowPopup;
 
     protected override void SetBindings()
     {

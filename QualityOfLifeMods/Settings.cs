@@ -1,16 +1,16 @@
-﻿using BepInEx.Configuration;
+﻿using MelonLoader;
 using IdleSlayerMods.Common.Config;
 using UnityEngine;
 
 namespace QualityOfLifeMods;
 
-internal sealed class Settings(ConfigFile cfg) : BaseConfig(cfg)
+internal sealed class Settings(string configName) : BaseConfig(configName)
 {
-    internal ConfigEntry<KeyCode> ChestPurchaseToggleKey;
-    internal ConfigEntry<KeyCode> MinionSenderToggleKey;
-    internal ConfigEntry<KeyCode> AddDragonScaleKey;
-    internal ConfigEntry<bool> ChestPurchaseShowPopup;
-    internal ConfigEntry<bool> MinionSenderShowPopup;
+    internal MelonPreferences_Entry<KeyCode> ChestPurchaseToggleKey;
+    internal MelonPreferences_Entry<KeyCode> MinionSenderToggleKey;
+    internal MelonPreferences_Entry<KeyCode> AddDragonScaleKey;
+    internal MelonPreferences_Entry<bool> ChestPurchaseShowPopup;
+    internal MelonPreferences_Entry<bool> MinionSenderShowPopup;
     protected override void SetBindings()
     {
         ChestPurchaseToggleKey = Bind("Chest Purchaser", "ChestPurchaseToggleKey", KeyCode.C,

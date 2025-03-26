@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyName>KillMimics</AssemblyName>
-    <Product>Chest Hunt Revealer</Product>
-    <Version>1.2.0</Version>
+    <Product>KillMimics</Product>
+    <Version>1.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <RestoreAdditionalProjectSources>
@@ -12,8 +11,8 @@
       https://nuget.bepinex.dev/v3/index.json;
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
-    <RootNamespace>KillMimics</RootNamespace>
-    <Company>Doomnik</Company>
+    <PackageId>KillMimics</PackageId>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,15 +20,27 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+    <PackageReference Include="Lib.Harmony" Version="2.3.5" />
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="IdleSlayerMods.Common">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\BepInEx\plugins\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Il2Cppmscorlib">
+	  <Reference Include="IdleSlayerMods.Common">
+		  <HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
+		  <Private>False</Private>
+	  </Reference>
+	  <Reference Include="Il2Cpp">
+		  <HintPath>..\Libraries\Il2Cpp.dll</HintPath>
+	  </Reference>
+		  <Reference Include="Il2CppInterop.Runtime">
+		  <HintPath>..\Libraries\Il2CppInterop.Runtime.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Il2Cppmscorlib">
       <HintPath>..\Libraries\Il2Cppmscorlib.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -47,8 +58,4 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
-    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.733" />
-  </ItemGroup>
 </Project>

@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using MelonLoader;
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Events;
+using Il2Cpp;
 
 namespace NoSpecialBoxesMode
 {
@@ -20,7 +18,9 @@ namespace NoSpecialBoxesMode
         private void Awake()
         {
             Instance = this;
-            Plugin.Log.LogDebug("NoSpecialBoxes Awake() called");
+
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("NoSpecialBoxes Awake() called");
 
             _specialBoxesDisabled = false; // Default state (enabled)
         }
@@ -33,7 +33,8 @@ namespace NoSpecialBoxesMode
                 if (_timer <= 0 && _boxToReenable != null)
                 {
                     _boxToReenable.gameObject.SetActive(true);
-                    Plugin.Log.LogDebug($"Special Box re-enabled after delay.");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"Special Box re-enabled after delay.");
                     _boxToReenable = null;
                 }
             }
@@ -60,7 +61,7 @@ namespace NoSpecialBoxesMode
         private void ToggleSetting(string type, ref bool state, bool showPopup)
         {
             state = !state;
-            Plugin.Log.LogInfo($"{type} are: {(state ? "OFF" : "ON")}");
+            Melon<Plugin>.Logger.Msg($"{type} are: {(state ? "OFF" : "ON")}");
 
             if (showPopup && type == "Special Boxes")
             {
@@ -75,18 +76,21 @@ namespace NoSpecialBoxesMode
         private void TurnOffSetting(string type, ref bool state)
         {
             state = false;
-            Plugin.Log.LogDebug($"{type} are: {(state ? "OFF" : "ON")}");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg($"{type} are: {(state ? "OFF" : "ON")}");
         }
 
         public void HandleSpecialBoxSpawn(SpecialRandomBox box)
         {
             if (!_specialBoxesDisabled)
             {
-                Plugin.Log.LogDebug("Special Boxes are enabled. No action taken.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Special Boxes are enabled. No action taken.");
                 return;
             }
 
-            Plugin.Log.LogDebug("Special Box detected! Disabling...");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Special Box detected! Disabling...");
 
             _boxToReenable = box;
             box.gameObject.SetActive(false);
@@ -95,7 +99,8 @@ namespace NoSpecialBoxesMode
 
         public void SetBonusSlider(BonusStartSlider slider)
         {
-            Plugin.Log.LogDebug("BonusStartSlider instance registered.");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("BonusStartSlider instance registered.");
             _bonusSlider = slider;
             SkipBonusModeSlider();
         }
@@ -104,11 +109,13 @@ namespace NoSpecialBoxesMode
         {
             if (_bonusSlider == null)
             {
-                Plugin.Log.LogError("No BonusStartSlider detected! Cannot skip slider.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("No BonusStartSlider detected! Cannot skip slider.");
                 return;
             }
 
-            Plugin.Log.LogDebug("Skipping Bonus Mode Slider...");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Skipping Bonus Mode Slider...");
 
             // Set slider to max and mark it as ready
             _bonusSlider.value = _bonusSlider.maxValue;
@@ -116,17 +123,20 @@ namespace NoSpecialBoxesMode
 
             if (_bonusSlider.confirmAction != null)
             {
-                Plugin.Log.LogDebug("Invoking confirmAction...");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Invoking confirmAction...");
                 _bonusSlider.confirmAction.Invoke();
             }
             else
             {
-                Plugin.Log.LogError("confirmAction is null, skipping puzzle might not work.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("confirmAction is null, skipping puzzle might not work.");
             }
 
             // Reset the reference to avoid keeping an old instance
             _bonusSlider = null;
-            Plugin.Log.LogDebug("BonusStartSlider reference cleared.");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("BonusStartSlider reference cleared.");
         }
     }
 }

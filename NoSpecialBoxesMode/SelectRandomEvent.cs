@@ -1,5 +1,8 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using MelonLoader;
+using Il2Cpp;
+
 
 namespace NoSpecialBoxesMode
 {
@@ -12,7 +15,8 @@ namespace NoSpecialBoxesMode
         {
             if (__instance == null) return;
 
-            Plugin.Log.LogDebug($"A Random Box has spawned! Type: {__instance.type}, Location: {__instance.transform.position}");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg($"A Random Box has spawned! Type: {__instance.type}, Location: {__instance.transform.position}");
 
 /*            if (NoSpecialBoxes.Instance != null)
             {
@@ -20,7 +24,7 @@ namespace NoSpecialBoxesMode
             }
             else
             {
-                Plugin.Log.LogError("NoSpecialBoxes instance is null! Special Box logic not applied.");
+                Melon<Plugin>.Logger.Msg("NoSpecialBoxes instance is null! Special Box logic not applied.");
             }
 */        }
     }
@@ -33,7 +37,8 @@ namespace NoSpecialBoxesMode
         {
             if (__instance == null) return;
 
-            Plugin.Log.LogDebug($"Special Random Box Spawned at {__instance.transform.position}");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg($"Special Random Box Spawned at {__instance.transform.position}");
 
             if (NoSpecialBoxes.Instance != null)
             {
@@ -41,7 +46,8 @@ namespace NoSpecialBoxesMode
             }
             else
             {
-                Plugin.Log.LogError("NoSpecialBoxes instance is null! Special Box logic not applied.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("NoSpecialBoxes instance is null! Special Box logic not applied.");
             }
         }
     }
@@ -53,7 +59,7 @@ namespace NoSpecialBoxesMode
         static void Postfix(BonusStartSlider __instance)
         {
             NoSpecialBoxes.Instance.SetBonusSlider(__instance);
-            Plugin.Log.LogDebug("Detected BonusStartSlider creation.");
+            Melon<Plugin>.Logger.Msg("Detected BonusStartSlider creation.");
         }
     }
 }

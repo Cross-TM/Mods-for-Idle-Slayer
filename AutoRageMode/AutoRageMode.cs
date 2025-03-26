@@ -1,6 +1,7 @@
-﻿using BepInEx.Unity.IL2CPP.Utils;
+﻿using MelonLoader;
 using System.Collections;
 using UnityEngine;
+using Il2Cpp;
 
 namespace AutoRageMode
 {
@@ -22,20 +23,24 @@ namespace AutoRageMode
         private void Awake()
         {
             Instance = this;
-            Plugin.Log.LogDebug("AutoRage Awake() called");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("AutoRage Awake() called");
+
             _rageMode = RageModeManager.instance;
             _soulsTimer = _rageMode.GetDuration() + 3.0;
 
             if (_rageMode == null)
             {
-                Plugin.Log.LogError("RageModeManager instance not found!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("RageModeManager instance not found!");
             }
             else
             {
-                Plugin.Log.LogDebug("RageModeManager instance successfully found.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("RageModeManager instance successfully found.");
             }
 
-            _debugLogCoroutine = Instance.StartCoroutine(LogRageCooldownStatus());
+            _debugLogCoroutine = (Coroutine)MelonCoroutines.Start(LogRageCooldownStatus());
 
             ToggleRageMode("Souls Horde Only Mode", ref _soulsHordeModeOnly, Plugin.Settings.SoulsHordeShowPopup.Value);
 
@@ -52,7 +57,8 @@ namespace AutoRageMode
                 string soulsEventStatus = (soulsEvent != null) ? "Souls Event: ACTIVE" : "Souls Event: NULL";
                 string soulsEventTimer = (soulsEvent != null && soulsEvent.timeLeft > 0) ? $"Time Left: {soulsEvent.timeLeft}s" : "No Active Timer";
 
-                Plugin.Log.LogDebug($"[DEBUG] RageMode Status: {rageModeStatus} | RageNotUsed Status: {rageNotUsed} | Timer Running: {coroutineRunning} | Souls Event: {soulsEventStatus} | {soulsEventTimer}");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg($"[DEBUG] RageMode Status: {rageModeStatus} | RageNotUsed Status: {rageNotUsed} | Timer Running: {coroutineRunning} | Souls Event: {soulsEventStatus} | {soulsEventTimer}");
             }
         }
 
@@ -92,9 +98,12 @@ namespace AutoRageMode
             // If Souls event timeLeft reaches 10s and Souls-Horde Mode is active, activate Rage
             if (_soulsHordeModeOnly && soulsEvent != null && soulsEvent.timeLeft > 0)
             {
+                _soulsTimer = _rageMode.GetDuration() + 3.0;
+
                 if (soulsEvent.timeLeft <= _soulsTimer && CanActivateRageMode(_rageMode))
                 {
-                    Plugin.Log.LogDebug($"Souls event at {_soulsTimer}s left, triggering Rage!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg($"Souls event at {_soulsTimer}s left, triggering Rage!");
                     ActivateRage();
                 }
             }
@@ -102,27 +111,31 @@ namespace AutoRageMode
             // If RageMode cooldown reaches zero, start the 5-minute timer
             if (_rageMode != null && _rageMode.currentCd == 0 && !_rageNotUsed && _rageCooldownCoroutine == null && soulsEvent == null)
             {
-                Plugin.Log.LogDebug("Rage cooldown reached zero, starting 5-minute countdown.");
-                _rageCooldownCoroutine = Instance.StartCoroutine(RageCooldownTimer());
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Rage cooldown reached zero, starting 5-minute countdown.");
+                _rageCooldownCoroutine = (Coroutine)MelonCoroutines.Start(RageCooldownTimer());
             }
 
             // Regular Auto Rage (If neither Horde Mode nor Souls-Horde Mode is enabled)
             if (!_hordeModeOnly && !_soulsHordeModeOnly && _autoRageModeOnly && CanActivateRageMode(_rageMode))
             {
-                Plugin.Log.LogDebug("Regular Auto Rage Mode triggered!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Regular Auto Rage Mode triggered!");
                 ActivateRage();
             }
 
             if (_rageMode != null && _rageMode.currentCd > 0 && (_rageNotUsed || _rageCooldownCoroutine != null))
             {
-                Plugin.Log.LogDebug("Rage cooldown is no longer 0. Stopping Rage cooldown timer.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Rage cooldown is no longer 0. Stopping Rage cooldown timer.");
                 StopRageCooldownTimer("Rage");
             }
 
             // Debugging: Log the cooldown of the Souls event if it's active
             if (soulsEvent != null && soulsEvent.timeLeft > 0)
             {
-                Plugin.Log.LogDebug($"Souls Event Active - Time Left: {soulsEvent.timeLeft} seconds");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg($"Souls Event Active - Time Left: {soulsEvent.timeLeft} seconds");
             }
 
         }
@@ -132,31 +145,37 @@ namespace AutoRageMode
         {
             if (Input.GetKeyDown(KeyCode.J) && Plugin.Settings.DebugMode.Value)
             {
-                Plugin.Log.LogDebug("Manual Souls event trigger!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Manual Souls event trigger!");
                 var soulsEvent = GameObject.FindObjectOfType<SoulsBonus>();
                 if (soulsEvent != null)
                 {
                     soulsEvent.Activate(true);
-                    Plugin.Log.LogDebug("Souls event activated manually!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Souls event activated manually!");
                 }
                 else
                 {
-                    Plugin.Log.LogError("Souls event not found!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Souls event not found!");
                 }
             }
 
             if (Input.GetKeyDown(KeyCode.K) && Plugin.Settings.DebugMode.Value)
             {
-                Plugin.Log.LogDebug("Manual Horde event trigger!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Manual Horde event trigger!");
                 var hordeEvent = GameObject.FindObjectOfType<Horde>();
                 if (hordeEvent != null)
                 {
                     hordeEvent.Activate(true);
-                    Plugin.Log.LogDebug("Horde event activated manually!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Horde event activated manually!");
                 }
                 else
                 {
-                    Plugin.Log.LogError("Horde event not found!");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Horde event not found!");
                 }
             }
 
@@ -166,7 +185,8 @@ namespace AutoRageMode
         {
             _rageMode.Activate();
             _rageNotUsed = false;
-            Plugin.Log.LogDebug("Rage cooldown reset.");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Rage cooldown reset.");
         }
 
         private IEnumerator RageCooldownTimer()
@@ -174,7 +194,8 @@ namespace AutoRageMode
             yield return new WaitForSeconds(300f); // 5 minutes
             _rageNotUsed = true;
             _rageCooldownCoroutine = null; // Clear reference after completion
-            Plugin.Log.LogDebug("Rage cooldown has been zero for 5 minutes.");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Rage cooldown has been zero for 5 minutes.");
         }
         private void StopRageCooldownTimer(string gameEvent)
         {
@@ -182,7 +203,8 @@ namespace AutoRageMode
             {
                 StopCoroutine(_rageCooldownCoroutine);
                 _rageCooldownCoroutine = null;
-                Plugin.Log.LogDebug($"{gameEvent} event started - Stopping Rage cooldown timer.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg($"{gameEvent} event started - Stopping Rage cooldown timer.");
             }
             _rageNotUsed = false; // Prevent cooldown-based activation
         }
@@ -191,7 +213,8 @@ namespace AutoRageMode
         {
             if (rageMode == null)
             {
-                Plugin.Log.LogError("RageModeManager is null inside CanActivateRageMode.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("RageModeManager is null inside CanActivateRageMode.");
                 return false;
             }
 
@@ -203,7 +226,7 @@ namespace AutoRageMode
             if (_rageMode == null) return;
             if (_rageMode.currentCd > 0) return;
 
-            Instance.StartCoroutine(DelayedRageModeActivation());
+            MelonCoroutines.Start(DelayedRageModeActivation());
         }
 
         private IEnumerator DelayedRageModeActivation()
@@ -215,7 +238,7 @@ namespace AutoRageMode
         private static void ToggleRageMode(string type, ref bool state, bool showPopup)
         {
             state = !state;
-            Plugin.Log.LogInfo($"{type} is: {(state ? "ON" : "OFF")}");
+            Melon<Plugin>.Logger.Msg($"{type} is: {(state ? "ON" : "OFF")}");
 
             if (showPopup)
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
@@ -224,19 +247,22 @@ namespace AutoRageMode
         private static void TurnOffRageMode(string type, ref bool state)
         {
             state = false;
-            Plugin.Log.LogDebug($"{type} is: {(state ? "ON" : "OFF")}");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg($"{type} is: {(state ? "ON" : "OFF")}");
         }
 
         public void SetActiveEvent(SoulsBonus eventInstance)
         {
-            Plugin.Log.LogDebug("Tracking Souls event timer...");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Tracking Souls event timer...");
             soulsEvent = eventInstance;
             StopRageCooldownTimer("Souls"); // Stop cooldown timer when Souls event starts
         }
 
         public void ClearActiveEvent()
         {
-            Plugin.Log.LogDebug("Clearing Souls event timer...");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Clearing Souls event timer...");
             soulsEvent = null;
         }
 
@@ -245,12 +271,14 @@ namespace AutoRageMode
         {
             if (_soulsHordeModeOnly && soulsEvent != null && soulsEvent.timeLeft > 0)
             {
-                Plugin.Log.LogDebug("Horde event started during Souls event! Activating Rage Mode.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Horde event started during Souls event! Activating Rage Mode.");
                 _hordeDuringSoulsEvent = true;
             }
             else if (_soulsHordeModeOnly && _rageNotUsed)
             {
-                Plugin.Log.LogDebug("Horde event triggered after Rage cooldown expired - activating Rage!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Horde event triggered after Rage cooldown expired - activating Rage!");
                 ActivateRageModeDelayed();
             }
         }
