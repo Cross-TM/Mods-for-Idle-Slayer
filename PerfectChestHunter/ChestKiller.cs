@@ -11,6 +11,7 @@ public class ChestKiller : MonoBehaviour
     private ChestHuntManager _chestHuntManager;
     private bool _chestOpenerCompleted;
     private bool _perfectChestOpenerCompleted;
+    private bool _chestHuntClosed;
     private PlayerInventory _playerInventory;
     private bool DebugMode = false;
 
@@ -36,6 +37,7 @@ public class ChestKiller : MonoBehaviour
         {
             _chestOpenerCompleted = false;
             _perfectChestOpenerCompleted = false;
+            _chestHuntClosed = false;
         }
         else
         {
@@ -59,13 +61,17 @@ public class ChestKiller : MonoBehaviour
                     return; // Exit early if perfect chests are not ready                                
 
                 var PerfectChest = _chestHuntManager.perfectChests[2].perfectChestObject;
-                if (PerfectChest == null )
+                if (PerfectChest == null)
                     return; // Exit early if perfect chest is not ready
 
                 OpenPerfectChests();
                 if (DebugMode)
                     Plugin.Logger.Msg("Perfect Chests opened!");
+                _perfectChestOpenerCompleted = true;
+            }
 
+            if (!_chestHuntClosed)
+            { 
                 GameObject cb = _chestHuntManager.closeButton;
                 if (cb != null)
                 {
@@ -75,7 +81,7 @@ public class ChestKiller : MonoBehaviour
                         if (DebugMode)
                             Plugin.Logger.Msg("Close button's Image component is active and enabled. Closing chest event.");
                         _chestHuntManager.Close();
-                        _perfectChestOpenerCompleted = true;
+                        _chestHuntClosed = true;
                     }
                 }
             }
