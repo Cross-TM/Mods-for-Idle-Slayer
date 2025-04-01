@@ -11,12 +11,12 @@
       https://nuget.bepinex.dev/v3/index.json;
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
-    <PackageId>KillMimics</PackageId>
+    <PackageId>PerfectChestHunter</PackageId>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="KillMimics.csproj.user" />
+    <None Include="PerfectChestHunter.csproj.user" />
   </ItemGroup>
 
   <ItemGroup>

@@ -49,7 +49,6 @@ namespace QualityOfLifeMods
                     Melon<Plugin>.Logger.Msg("DivinitiesManager instance is null!");
             }
 
-            ToggleChestExtinction("Chest Extinction Purchaser", ref _chestExtinctionPurchaserEnabled, Plugin.Settings.ChestPurchaseShowPopup.Value);
 
         }
         private void LateUpdate()
@@ -57,11 +56,6 @@ namespace QualityOfLifeMods
             if (Input.GetKeyDown(Plugin.Settings.ChestPurchaseToggleKey.Value))
             {
                 ToggleChestExtinction("Chest Extinction Purchaser", ref _chestExtinctionPurchaserEnabled, Plugin.Settings.ChestPurchaseShowPopup.Value);
-            }
-
-            if (Input.GetKeyDown(Plugin.Settings.AddDragonScaleKey.Value))
-            {
-                AddMoreDragonScales(5.0);
             }
 
         }

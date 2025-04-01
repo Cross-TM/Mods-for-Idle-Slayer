@@ -8,7 +8,6 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
 {
     internal MelonPreferences_Entry<KeyCode> ChestPurchaseToggleKey;
     internal MelonPreferences_Entry<KeyCode> MinionSenderToggleKey;
-    internal MelonPreferences_Entry<KeyCode> AddDragonScaleKey;
     internal MelonPreferences_Entry<bool> ChestPurchaseShowPopup;
     internal MelonPreferences_Entry<bool> MinionSenderShowPopup;
     protected override void SetBindings()
@@ -17,8 +16,6 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
             "The key bind for toggling Chest Purchaser mode");
         MinionSenderToggleKey = Bind("Chest Purchaser", "MinionSenderToggleKey", KeyCode.M,
             "The key bind for sending Minions");
-        AddDragonScaleKey = Bind("Deagon Scale Adder", "AddDragonScaleKey", KeyCode.Q,
-            "The key bind for adding Souls");
         ChestPurchaseShowPopup = Bind("Chest Purchaser", "ChestPurchaseShowPopup", true,
             "Show a message popup to indicate whether Chest Purchaser has been toggled.");
         MinionSenderShowPopup = Bind("Chest Purchaser", "MinionSenderShowPopup", true,

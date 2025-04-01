@@ -1,6 +1,4 @@
-﻿using HarmonyLib;
-using IdleSlayerMods.Common;
-using Il2CppInterop.Runtime.Injection;
+﻿using IdleSlayerMods.Common;
 using MelonLoader;
 using MyPluginInfo = AutoRageMode.MyPluginInfo;
 using Plugin = AutoRageMode.Plugin;
@@ -17,7 +15,6 @@ public class Plugin : MelonMod
 
     public override void OnInitializeMelon()
     {
-        ClassInjector.RegisterTypeInIl2Cpp<AutoRage>();
         Settings = new(MyPluginInfo.PLUGIN_GUID);
         LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
