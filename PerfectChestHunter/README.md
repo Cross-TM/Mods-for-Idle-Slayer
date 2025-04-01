@@ -1,6 +1,7 @@
-Highlights mimic chests in the Chest Hunt minigame
+Auto-Opens all Non-Mimic chests, gaining the hightest possible multiplier for the round
 
-Chest that contain mimics will appear.
-Can be configured to show multiplier chests in the config file.
+Auto-selects the highest multiplier on the perfect chest hunt as well
 
-Plugin goes into **Path/To/Idle Slayer/BepInEx/plugins**
+Plugin goes into **Path/To/Idle Slayer/Mods**
+
+Requires Melon Loader and IdleSlayer.Common to function
