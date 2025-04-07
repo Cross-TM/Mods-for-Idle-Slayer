@@ -1,6 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using Il2Cpp;
+using System;
+using System.Collections;
+using MelonLoader;
 
 namespace PerfectChestHunter;
 
@@ -14,6 +17,7 @@ public class ChestKiller : MonoBehaviour
     private bool _chestHuntClosed;
     private PlayerInventory _playerInventory;
     private bool DebugMode = false;
+
 
     private void Awake()
     {
@@ -50,7 +54,7 @@ public class ChestKiller : MonoBehaviour
                 if (DebugMode)
                     LowerStats();
 
-                OpenChests();
+                MelonCoroutines.Start(OpenChests());
             }
 
             _chestOpenerCompleted = true;
@@ -94,29 +98,54 @@ public class ChestKiller : MonoBehaviour
         _playerInventory.mimicsSlayed = (int)(_playerInventory.chestHunts * 2.5);
     }
 
-    private void OpenChests()
+    private float defaultChestOpeningDelay = 0.25f; // Delay between opening chests
+
+    private IEnumerator OpenChest(ChestObject chestObj, float chestOpeningDelay)
     {
+        var chestComponent = chestObj.GetComponent<ChestObject>();
+        if (chestComponent != null)
+        {
+            if (DebugMode)
+                Plugin.Logger.Msg($"Opening chest");
+            chestComponent.Open(true);
+        }
+        else
+        {
+            if (DebugMode)
+                Plugin.Logger.Msg($"ChestObject component not found!");
+        }
+
+        yield return new WaitForSeconds(chestOpeningDelay);
+    }
+
+
+    private IEnumerator OpenChests()
+    {
+        bool DupeOpened = false;
+
+        // First segment: Opening DuplicateNextPick chests
         foreach (var chest in _chestHuntManager.chests)
         {
-            var @object = chest.chestObject;
-            if (!@object) continue;
+            var chestObj = chest.chestObject;
+            if (!chestObj) continue;
             if (chest.type == ChestType.DuplicateNextPick)
             {
-                var chestComponent = @object.GetComponent<ChestObject>();
-                if (chestComponent != null)
+                if (DebugMode)
+                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+
+                if (!DupeOpened)
                 {
-                    if (DebugMode)
-                        Plugin.Logger.Msg($"Opening chest of type: {chest.type}");
-                    chestComponent.Open(true);
+                    DupeOpened = true;
+                    yield return OpenChest(chestObj, defaultChestOpeningDelay);
                 }
                 else
                 {
-                    if (DebugMode)
-                        Plugin.Logger.Msg($"ChestObject component not found on {chest.type}!");
+                    yield return OpenChest(chestObj, 3f);
                 }
             }
         }
 
+        // Second segment: Opening the best multiplier chest
         Chest bestChest = null;
         int bestMultiplier = int.MinValue;
 
@@ -139,50 +168,22 @@ public class ChestKiller : MonoBehaviour
             var chestObj = bestChest.chestObject;
             if (chestObj != null)
             {
-                ChestObject chestComponent = chestObj.GetComponent<ChestObject>();
-                if (chestComponent != null)
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg("Opening the highest multiplier chest.");
-                    chestComponent.Open(true);
-                }
-                else
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg("ChestObject component not found on the highest multiplier chest!");
-                }
-            }
-            else
-            {
                 if (DebugMode)
-                    Plugin.Logger.Msg("Highest multiplier chest has no chestObject!");
+                    Plugin.Logger.Msg("Opening the highest multiplier chest.");
+                yield return OpenChest(chestObj, defaultChestOpeningDelay);
             }
-        }
-        else
-        {
-            if (DebugMode)
-                Plugin.Logger.Msg("No multiplier chests found.");
         }
 
+        // Third segment: Opening all non-mimic chests
         foreach (var chest in _chestHuntManager.chests)
         {
-            var @object = chest.chestObject;
-            if (!@object) continue;
-
+            var chestObj = chest.chestObject;
+            if (!chestObj) continue;
             if (chest.type != ChestType.Mimic)
             {
-                var chestComponent = @object.GetComponent<ChestObject>();
-                if (chestComponent != null)
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg($"Opening chest of type: {chest.type}");
-                    chestComponent.Open(true);
-                }
-                else
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg($"ChestObject component not found on {chest.type}!");
-                }
+                if (DebugMode)
+                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+                yield return OpenChest(chestObj, defaultChestOpeningDelay);
             }
         }
     }
