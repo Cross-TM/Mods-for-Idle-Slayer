@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+      <PackageReference Include="Lib.Harmony" Version="2.3.5" />
+    </ItemGroup>
+
+		<ItemGroup>
+			<Reference Include="Assembly-CSharp">
+				<HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="IdleSlayerMods.Common">
+				<HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="Il2Cpp">
+				<HintPath>..\Libraries\Il2Cpp.dll</HintPath>
+			</Reference>
+			<Reference Include="Il2CppInterop.Runtime">
+				<HintPath>..\Libraries\Il2CppInterop.Runtime.dll</HintPath>
+			</Reference>
+			<Reference Include="Il2Cppmscorlib">
+				<HintPath>..\Libraries\Il2Cppmscorlib.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="UnityEngine.CoreModule">
+				<HintPath>..\Libraries\UnityEngine.CoreModule.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="UnityEngine.InputLegacyModule">
+				<HintPath>..\Libraries\UnityEngine.InputLegacyModule.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="UnityEngine.UI">
+				<HintPath>..\Libraries\UnityEngine.UI.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+			<Reference Include="UnityEngine.UIModule">
+				<HintPath>..\Libraries\UnityEngine.UIModule.dll</HintPath>
+				<Private>False</Private>
+			</Reference>
+		</ItemGroup>
+
+    <ItemGroup>
+      <None Include="NoSyncGameLoad.csproj.user" />
+    </ItemGroup>
+
+</Project>
+
