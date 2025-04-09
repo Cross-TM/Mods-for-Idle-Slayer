@@ -2,17 +2,18 @@
 using IdleSlayerMods.Common;
 using Il2CppInterop.Runtime.Injection;
 using MelonLoader;
-using MyPluginInfo = QualityOfLifeMods.MyPluginInfo;
-using Plugin = QualityOfLifeMods.Plugin;
+using MyPluginInfo = MinionManaging.MyPluginInfo;
+using Plugin = MinionManaging.Plugin;
 
 [assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
 [assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
-namespace QualityOfLifeMods;
+namespace MinionManaging;
 
 public class Plugin : MelonMod
 {
     internal static Settings Settings;
+    internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
     internal static ModHelper ModHelperInstance;
 
     public override void OnInitializeMelon()

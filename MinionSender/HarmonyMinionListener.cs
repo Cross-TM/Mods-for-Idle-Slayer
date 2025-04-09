@@ -3,7 +3,7 @@ using UnityEngine;
 using MelonLoader;
 using Il2Cpp;
 
-namespace QualityOfLifeMods
+namespace MinionManaging
 {
 
     [HarmonyPatch(typeof(MinionManager), "AreAllMinionsWorking")]
@@ -15,7 +15,7 @@ namespace QualityOfLifeMods
             if (!__result && MinionSender.Instance.MinionSenderEnabled)
             {
                 if (Debug.isDebugBuild)
-                    Melon<Plugin>.Logger.Msg("Some minions are not working!");
+                    Plugin.Logger.Msg("Some minions are not working!");
                 MinionSender.Instance.SendMinions();
             }
         }
@@ -30,7 +30,7 @@ namespace QualityOfLifeMods
             if (__result && MinionSender.Instance.MinionSenderEnabled)
             {
                 if (Debug.isDebugBuild)
-                    Melon<Plugin>.Logger.Msg("Minions are ready to be claimed!");
+                    Plugin.Logger.Msg("Minions are ready to be claimed!");
                 MinionSender.Instance.ClaimMinions();
             }
         }

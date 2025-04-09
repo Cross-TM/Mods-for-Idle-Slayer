@@ -1,4 +1,4 @@
-﻿namespace QualityOfLifeMods
+﻿namespace MinionManaging
 {
     class MyPluginInfo
     {

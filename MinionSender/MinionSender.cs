@@ -3,12 +3,16 @@ using System.Reflection;
 using MelonLoader;
 using Il2Cpp;
 
-namespace QualityOfLifeMods
+namespace MinionManaging
 {
     public class MinionSender : MonoBehaviour
     {
         public static MinionSender Instance { get; private set; }
+        public static AscensionManager _ascensionManager => AscensionManager.instance;
         private bool _minionSenderEnabled;
+        private bool DebugMode = false;
+        private bool IsRunning = true;
+
         public bool MinionSenderEnabled
         {
             get { return _minionSenderEnabled; }
@@ -17,50 +21,43 @@ namespace QualityOfLifeMods
 
         private void Awake()
         {
+            #if DEBUG
+                DebugMode = true;
+            #endif
+
             Instance = this;
+            MinionSenderEnabled = true;
+
             if (Debug.isDebugBuild)
-                Melon<Plugin>.Logger.Msg("MinionSender Awake() called");
+                Plugin.Logger.Msg("MinionSender Awake() called");
         }
+
         private void Start()
         {
-            if (Debug.isDebugBuild)
-                Melon<Plugin>.Logger.Msg("Checking Minion Sender state on game start");
-            if (MinionManager.instance != null)
-            {
-                if (Debug.isDebugBuild)
-                    Melon<Plugin>.Logger.Msg("MinionManager found. Activating Minion Sender");
-                ToggleMinionSender("Minion Sender", ref _minionSenderEnabled, Plugin.Settings.MinionSenderShowPopup.Value);
-            }
-            else
-            {
-                if (Debug.isDebugBuild)
-                    Melon<Plugin>.Logger.Msg("MinionManager instance is null! Cannot activate Minion Sender.");
-            }
+            _ascensionManager.OpenMinionsPanel();
         }
         private void LateUpdate()
         {
-            if (Input.GetKeyDown(Plugin.Settings.MinionSenderToggleKey.Value))
+            if (!GameState.IsRunner())
             {
-                ToggleMinionSender("Minion Sender", ref _minionSenderEnabled, Plugin.Settings.MinionSenderShowPopup.Value);
+                IsRunning = false;
             }
-        }
-        private void ToggleMinionSender(string type, ref bool state, bool showPopup)
-        {
-            state = !state;
-            Melon<Plugin>.Logger.Msg($"{type} is now: {(state ? "ON" : "OFF")}");
-            if (showPopup)
-                Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
+            else if (GameState.IsRunner() && !IsRunning)
+            {
+                IsRunning = true;
+                _ascensionManager.OpenMinionsPanel();
+            }
         }
 
         public void SendMinions()
         {
-            Melon<Plugin>.Logger.Msg("Sending Minions to work");
+            Plugin.Logger.Msg("Sending Minions to work");
             MinionManager.instance.SendAll();
         }
 
         public void ClaimMinions()
         {
-            Melon<Plugin>.Logger.Msg("Claiming Minions");
+            Plugin.Logger.Msg("Claiming Minions");
             MinionManager.instance.ClaimAll();
         }
 
