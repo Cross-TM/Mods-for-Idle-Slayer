@@ -22,17 +22,15 @@
   <ItemGroup>
     <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
     <PackageReference Include="Lib.Harmony" Version="2.3.5" />
-    <PackageReference Include="System.Text.Json" Version="9.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Assembly-CSharp">
+	  <Reference Include="IdleSlayerMods.Common">
+		  <HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Assembly-CSharp">
       <HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
-    </Reference>
-    <Reference Include="IdleSlayerMods.Common">
-		<HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
-		<Private>False</Private>
     </Reference>
 		<Reference Include="Il2Cpp">
 			<HintPath>..\Libraries\Il2Cpp.dll</HintPath>
