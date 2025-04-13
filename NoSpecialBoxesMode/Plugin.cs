@@ -15,6 +15,7 @@ public class Plugin : MelonMod
 {
     internal static Settings Settings;
     internal static ModHelper ModHelperInstance;
+    internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
 
     public override void OnInitializeMelon()
     {
