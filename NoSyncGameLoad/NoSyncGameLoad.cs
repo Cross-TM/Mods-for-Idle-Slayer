@@ -7,7 +7,12 @@ namespace ExperimentalMods
     {
         void Start ()
         {
-            SceneManager.LoadScene("Game");
+            Scene currentScene = SceneManager.GetActiveScene();
+
+            if (currentScene.name == "Title Screen")
+            {
+                SceneManager.LoadScene("Game");
+            }
         }
     }
 }

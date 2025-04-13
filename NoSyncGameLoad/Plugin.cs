@@ -17,12 +17,9 @@ public class Plugin : MelonMod
 
     public override void OnInitializeMelon()
     {
-//        Config = new(MyPluginInfo.PLUGIN_GUID);
         Logger.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
 
-//        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
-//        harmony.PatchAll();
 
     }
     private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
