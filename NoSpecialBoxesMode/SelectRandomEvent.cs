@@ -57,7 +57,7 @@ namespace NoSpecialBoxesMode
         static void Postfix(BonusStartSlider __instance)
         {
             NoSpecialBoxes.Instance.SetBonusSlider(__instance);
-            Plugin.Logger.Msg("Detected BonusStartSlider creation.");
+            Plugin.Logger.Debug("Detected BonusStartSlider creation.");
         }
     }
 }

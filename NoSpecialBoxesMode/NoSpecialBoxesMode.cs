@@ -9,16 +9,9 @@ namespace NoSpecialBoxesMode
     {
         public static NoSpecialBoxes Instance { get; private set; }
 
-        private RageModeManager _rageMode;
-        private SpecialRandomBox _specialBox;
-        private bool rageRunning = false;
-
         private bool _specialBoxesDisabled;
         private bool _completeBonusSlider;
         private bool _boxesToggledOnAgain = false;
-        private float _timer = 0f;
-        private RandomBox _boxToReenable;
-        private SpecialRandomBox _specialBoxToReenable;
         private BonusStartSlider _bonusSlider;
 
         private MapController _mapController;
@@ -26,7 +19,6 @@ namespace NoSpecialBoxesMode
 
         private Maps _maps;
 
-        private double currentSpecialRandomBoxChance;
 
         private void Awake()
         {
@@ -36,36 +28,14 @@ namespace NoSpecialBoxesMode
 
             _specialBoxesDisabled = false; // Default state (enabled)
 
-            _rageMode = RageModeManager.instance;
-
             _mapController = GameObject.Find("Map").GetComponent<MapController>();
+
             _playerInventory = PlayerInventory.instance;
 
             _maps = Maps.list;
             if (_maps == null)
             {
                 Plugin.Logger.Debug("Maps instance not initialized. Check your scene setup.");
-            }
-
-        }
-
-        private void Update()
-        {
-            if (_timer > 0)
-            {
-                _timer -= Time.deltaTime;
-                if (_timer <= 0 && _boxToReenable != null)
-                {
-                    _boxToReenable.gameObject.SetActive(true);
-                    Plugin.Logger.Debug($"Box re-enabled after delay.");
-                    _boxToReenable = null;
-                }
-                else if (_timer <= 0 && _specialBoxToReenable != null)
-                {
-                    _specialBoxToReenable.gameObject.SetActive(true);
-                    Plugin.Logger.Debug($"Special Box re-enabled after delay.");
-                    _specialBoxToReenable = null;
-                }
             }
         }
 
@@ -80,26 +50,6 @@ namespace NoSpecialBoxesMode
             {
                 _mapController.ChangeMap(_maps.VictorBossFight);
             }
-/*            if (Input.GetKeyDown(KeyCode.I))
-            {
-                Plugin.Logger.Msg($"Current Special Box Chance is {PlayerInventory.instance.specialRandomBoxChance}");
-                MapController.instance.specialRandomBoxCooldown = 0f;
-                PlayerInventory.instance.specialRandomBoxChance = 100f;
-            }
-            if (Input.GetKeyDown(KeyCode.U))
-            {
-                Plugin.Logger.Msg($"Current Special Box Chance is {PlayerInventory.instance.specialRandomBoxChance}");
-                Plugin.Logger.Msg($"Special Box last used at {MapController.instance.specialRandomBoxLastUsed}");
-
-                var currentTime = TimeManager.GetCurrentDateTime(false);
-                Plugin.Logger.Msg($"Current false Time is {currentTime}");
-                Plugin.Logger.Msg($"Current false Unix Timestamp is {TimeManager.GetUnixTimeStampFromDate(currentTime)}");
-
-                Plugin.Logger.Msg($"Difference between current time and lastUsedBoxTime: {TimeManager.GetDaysDifference(TimeManager.GetUnixTimeStampFromDate(currentTime), MapController.instance.specialRandomBoxLastUsed)}");
-                Plugin.Logger.Msg($"CUrrent SPecial box cooldown {MapController.instance.specialRandomBoxCooldown}");
-            }
-*/
-
 #endif
 
             if (_specialBoxesDisabled && _playerInventory.specialRandomBoxChance != 0)
@@ -130,7 +80,6 @@ namespace NoSpecialBoxesMode
             // Check if the user wants to skip the bonus slider
             if (Input.GetKeyDown(Plugin.Settings.BonusModeToggleKey.Value))
             {
-                //SkipBonusModeSlider();
                 ToggleSetting("Bonus Mode Slider Bypass", ref _completeBonusSlider, Plugin.Settings.BonusModeShowPopup.Value);
                 TurnOffSetting("Special Boxes", ref _specialBoxesDisabled);
             }
@@ -150,9 +99,13 @@ namespace NoSpecialBoxesMode
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
             }
 
-            if (type == "Special Boxes" && state)
+            if (type == "Special Boxes" && !state)
             {
                 _boxesToggledOnAgain = true;
+            }
+            else if (type == "Special Boxes" && state)
+            {
+                _boxesToggledOnAgain = false;
             }
         }
 
@@ -175,7 +128,6 @@ namespace NoSpecialBoxesMode
                 return;
             }
             else if (_completeBonusSlider && GameState.IsBonus())
-//            if (_completeBonusSlider)
             {
                 _bonusSlider = slider;
                 SkipBonusModeSlider();
