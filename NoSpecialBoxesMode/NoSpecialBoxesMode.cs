@@ -88,14 +88,15 @@ namespace NoSpecialBoxesMode
         private void ToggleSetting(string type, ref bool state, bool showPopup)
         {
             state = !state;
-            Plugin.Logger.Msg($"{type} are: {(state ? "OFF" : "ON")}");
 
             if (showPopup && type == "Special Boxes")
             {
+                Plugin.Logger.Msg($"{type} are: {(state ? "OFF" : "ON")}");
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} disabled!" : $"{type} enabled!", state);
             }
             else if (showPopup && type == "Bonus Mode Slider Bypass")
             {
+                Plugin.Logger.Msg($"{type} are: {(state ? "ON" : "OFF")}");
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
             }
 
