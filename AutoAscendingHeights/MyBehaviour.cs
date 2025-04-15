@@ -26,7 +26,7 @@ public class MyBehaviour : MonoBehaviour
             Plugin.Logger.Msg("AscendingHeightsController successfully found!");
         }
 
-        _ascendingHeightsController.boostPlatformForce = 500f;
+        _ascendingHeightsController.startingBoost = 500f;
     }
 
     public void Start()
