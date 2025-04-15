@@ -7,7 +7,7 @@ using IdleSlayerMods.Common.Extensions;
 
 namespace NoSpecialBoxesMode
 {
-    // Regular Random Boxes - Only Logs
+/*    // Regular Random Boxes - Only Logs
     [HarmonyPatch(typeof(RandomBox), "OnObjectSpawn")]
     public class Patch_RandomBox_OnObjectSpawn
     {
@@ -49,7 +49,7 @@ namespace NoSpecialBoxesMode
             }
         }
     }
-
+*/
     [HarmonyPatch(typeof(BonusStartSlider), "SetRandomPuzzle")]
     public class BonusStartSliderPatch
     {
