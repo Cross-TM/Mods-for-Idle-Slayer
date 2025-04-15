@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="CustomFolderDeploy" AfterTargets="AfterBuild" BeforeTargets="MSDeployPublish">
+    <PropertyGroup>
+      <CustomFolder>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)\net6.0'))</CustomFolder>
+    </PropertyGroup>
+    <CreateItem Include="$(CustomFolder)\MinionSender.dll">
+      <Output TaskParameter="Include" ItemName="CustomFiles" />
+    </CreateItem>
+    <Copy SourceFiles="@(CustomFiles)" DestinationFolder="C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\Mods" SkipUnchangedFiles="True" ContinueOnError="False" />
+  </Target>
+</Project>
