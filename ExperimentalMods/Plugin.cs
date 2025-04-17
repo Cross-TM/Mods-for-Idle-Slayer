@@ -31,10 +31,11 @@ public class Plugin : MelonMod
     {
         if (sceneName == "Title Screen")
         {
-            ModUtils.RegisterComponent<GameStart>();
+            //ModUtils.RegisterComponent<GameStart>();
         }
         
         if (sceneName != "Game") return;
         //ModUtils.RegisterComponent<ExperimentalMod>();
+        ModUtils.RegisterComponent<CraftableSkills>();
     }
 }
