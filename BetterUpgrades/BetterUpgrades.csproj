@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
@@ -9,22 +9,44 @@
 
     <ItemGroup>
       <PackageReference Include="IdleSlayerMods.Common" Version="1.1.8-ML" />
-      <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+		<PackageReference Include="Lib.Harmony" Version="2.3.5" />
+		<PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Reference Include="Il2CppInterop.Runtime">
-        <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
-      </Reference>
-      <Reference Include="Il2Cppmscorlib">
-        <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
-      </Reference>
-      <Reference Include="UnityEngine.CoreModule">
-        <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
-      </Reference>
-    </ItemGroup>
+	<ItemGroup>
+		<Reference Include="Assembly-CSharp">
+			<HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Il2Cpp">
+			<HintPath>..\Libraries\Il2Cpp.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2CppInterop.Runtime">
+			<HintPath>..\Libraries\Il2CppInterop.Runtime.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2Cppmscorlib">
+			<HintPath>..\Libraries\Il2Cppmscorlib.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.CoreModule">
+			<HintPath>..\Libraries\UnityEngine.CoreModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.InputLegacyModule">
+			<HintPath>..\Libraries\UnityEngine.InputLegacyModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.UI">
+			<HintPath>..\Libraries\UnityEngine.UI.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.UIModule">
+			<HintPath>..\Libraries\UnityEngine.UIModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+	</ItemGroup>
 
-    <ItemGroup>
+	<ItemGroup>
       <None Include="BetterUpgrades.csproj.user" />
     </ItemGroup>
 
