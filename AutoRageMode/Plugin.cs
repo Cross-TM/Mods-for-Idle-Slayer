@@ -1,5 +1,7 @@
 ﻿using IdleSlayerMods.Common;
+using Il2CppSystem.Runtime.Serialization.Formatters.Binary;
 using MelonLoader;
+using System.Diagnostics;
 using MyPluginInfo = AutoRageMode.MyPluginInfo;
 using Plugin = AutoRageMode.Plugin;
 
@@ -12,6 +14,13 @@ public class Plugin : MelonMod
 {
     internal static Settings Settings;
     internal static ModHelper ModHelperInstance;
+    internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
+
+    [Conditional("DEBUG")]
+    public static void DLog(string message)
+    {
+        Logger.Msg(message);
+    }
 
     public override void OnInitializeMelon()
     {
@@ -30,4 +39,5 @@ public class Plugin : MelonMod
         if (sceneName != "Game") return;
         ModUtils.RegisterComponent<AutoRage>();
     }
+
 }
