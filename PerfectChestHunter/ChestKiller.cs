@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using Il2Cpp;
-using System;
 using System.Collections;
 using MelonLoader;
 
@@ -16,27 +15,39 @@ public class ChestKiller : MonoBehaviour
     private bool _perfectChestOpenerCompleted;
     private bool _chestHuntClosed;
     private PlayerInventory _playerInventory;
-    private bool DebugMode = false;
-
+    private bool DebugMode;
+    private bool MultiplyArmoryChests;
 
     private void Awake()
     {
         Instance = this;    
         _chestHuntManager = gameObject.GetComponentInChildren<ChestHuntManager>();
         _playerInventory = PlayerInventory.instance;
+
+        MultiplyArmoryChests = Plugin.Settings.MultiplyArmoryChests.Value;
     }
 
-    private void Update()
+    private void LateUpdate()
     {
 #if DEBUG
         DebugMode = true;
 
-        if (Input.GetKeyDown(KeyCode.O))
+        if (Input.GetKeyDown(KeyCode.O) && !GameState.IsChestHunt())
         {
             _chestHuntManager.StartEvent();
 
         }
+        if (Input.GetKeyDown(KeyCode.U))
+        {
+            _chestHuntManager.Close();
+        }
 #endif
+
+    }
+
+    private void Update()
+    {
+
         if (!GameState.IsChestHunt())
         {
             _chestOpenerCompleted = false;
@@ -45,7 +56,7 @@ public class ChestKiller : MonoBehaviour
         }
         else
         {
-            if (!_chestOpenerCompleted) 
+            if (!_chestOpenerCompleted)
             {
                 if (!_chestHuntManager.IsVisible() || _chestHuntManager.chests.Count == 0)
                     return; // Exit early if chests are not ready
@@ -55,9 +66,9 @@ public class ChestKiller : MonoBehaviour
                     LowerStats();
 
                 MelonCoroutines.Start(OpenChests());
-            }
 
-            _chestOpenerCompleted = true;
+                _chestOpenerCompleted = true;
+            }
 
             if (!_perfectChestOpenerCompleted)
             {
@@ -75,7 +86,7 @@ public class ChestKiller : MonoBehaviour
             }
 
             if (!_chestHuntClosed)
-            { 
+            {
                 GameObject cb = _chestHuntManager.closeButton;
                 if (cb != null)
                 {
@@ -90,7 +101,23 @@ public class ChestKiller : MonoBehaviour
                 }
             }
         }
+
+        if (Input.GetKeyDown(Plugin.Settings.ArmoryChestMultiplyToggleKey.Value))
+        {
+            ToggleSetting("Armory Chest Multiplying", ref MultiplyArmoryChests);
+        }
     }
+
+    private void ToggleSetting(string type, ref bool state)
+    {
+        state = !state;
+
+        Plugin.Logger.Msg($"{type} are: {(state ? "ON" : "OFF")}");
+        Plugin.ModHelperInstance.ShowNotification(state ? $"{type} enabled!" : $"{type} disabled!", state);
+
+        Plugin.Settings.MultiplyArmoryChests.Value = state;
+    }
+
 
     private void LowerStats()
     {
@@ -118,7 +145,6 @@ public class ChestKiller : MonoBehaviour
         yield return new WaitForSeconds(chestOpeningDelay);
     }
 
-
     private IEnumerator OpenChests()
     {
         bool DupeOpened = false;
@@ -130,6 +156,7 @@ public class ChestKiller : MonoBehaviour
             if (!chestObj) continue;
             if (chest.type == ChestType.DuplicateNextPick)
             {
+                if (chest.opened) continue;
                 if (DebugMode)
                     Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
 
@@ -145,7 +172,25 @@ public class ChestKiller : MonoBehaviour
             }
         }
 
-        // Second segment: Opening the best multiplier chest
+        if (Plugin.Settings.MultiplyArmoryChests.Value)
+        {
+            // Second segment: Opening Armory chests
+            foreach (var chest in _chestHuntManager.chests)
+            {
+                var chestObj = chest.chestObject;
+                if (!chestObj) continue;
+                if (chest.type == ChestType.ArmoryChest)
+                {
+                    if (chest.opened) continue;
+
+                    if (DebugMode)
+                        Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+                    yield return OpenChest(chestObj, defaultChestOpeningDelay);
+                }
+            }
+        }
+
+        // Second or third segment: Opening the best multiplier chest
         Chest bestChest = null;
         int bestMultiplier = int.MinValue;
 
@@ -165,8 +210,9 @@ public class ChestKiller : MonoBehaviour
         {
             if (DebugMode)
                 Plugin.Logger.Msg($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
+
             var chestObj = bestChest.chestObject;
-            if (chestObj != null)
+            if (chestObj != null && !bestChest.opened)
             {
                 if (DebugMode)
                     Plugin.Logger.Msg("Opening the highest multiplier chest.");
@@ -181,6 +227,7 @@ public class ChestKiller : MonoBehaviour
             if (!chestObj) continue;
             if (chest.type != ChestType.Mimic)
             {
+                if (chest.opened) continue;
                 if (DebugMode)
                     Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
                 yield return OpenChest(chestObj, defaultChestOpeningDelay);
@@ -192,26 +239,46 @@ public class ChestKiller : MonoBehaviour
     {
         foreach (var perfectChest in _chestHuntManager.perfectChests)
         {
-            if (perfectChest.multiplier == 4)
+
+            if (perfectChest.type == ChestType.PermanentUpgrade)
             {
                 if (DebugMode)
                     Plugin.Logger.Msg("Opening perfect chest with multiplier 4...");
+
                 var @object = perfectChest.perfectChestObject;
                 if (!@object) continue;
 
                 var perfectChestComponent = @object.GetComponent<PerfectChestObject>();
-                if (perfectChestComponent != null)
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg("Opening perfect chest...");
-                    perfectChestComponent.Open(true);
-                }
-                else
-                {
-                    if (DebugMode)
-                        Plugin.Logger.Msg("PerfectChestObject component not found!");
-                }
+                if (DebugMode)
+                    Plugin.Logger.Msg("Opening perfect chest...");
+                perfectChestComponent?.Open(true);
+                return;
             }
+        }
+
+        Chest bestChest = null;
+        int bestMultiplier = int.MinValue;
+
+        foreach (var chest in _chestHuntManager.perfectChests)
+        {
+            if (chest.multiplier > bestMultiplier)
+            {
+                bestMultiplier = chest.multiplier;
+                bestChest = chest;
+            }
+        }
+
+        if (bestChest != null)
+        {
+            if (DebugMode)
+                Plugin.Logger.Msg($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
+
+            var @object = bestChest.perfectChestObject;
+
+            var perfectChestComponent = @object.GetComponent<PerfectChestObject>();
+            if (DebugMode)
+                Plugin.Logger.Msg("Opening perfect chest...");
+            perfectChestComponent?.Open(true);
         }
     }
 }
