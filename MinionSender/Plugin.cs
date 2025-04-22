@@ -12,7 +12,6 @@ namespace MinionManaging;
 
 public class Plugin : MelonMod
 {
-    internal static Settings Settings;
     internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
     internal static ModHelper ModHelperInstance;
 
@@ -20,7 +19,6 @@ public class Plugin : MelonMod
     {
         ClassInjector.RegisterTypeInIl2Cpp<MinionSender>();
 
-        Settings = new(MyPluginInfo.PLUGIN_GUID);
         LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
 
