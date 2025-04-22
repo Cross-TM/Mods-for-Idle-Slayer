@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
@@ -9,7 +9,8 @@
 
     <ItemGroup>
       <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
-    </ItemGroup>
+		<PackageReference Include="Lib.Harmony" Version="2.3.6" />
+	</ItemGroup>
 
     <ItemGroup>
 		<Reference Include="Assembly-CSharp">
@@ -38,7 +39,11 @@
 			<HintPath>..\Libraries\UnityEngine.UI.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
-    </ItemGroup>
+		<Reference Include="UnityEngine.Physics2DModule">
+			<HintPath>..\Libraries\UnityEngine.Physics2DModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+	</ItemGroup>
 
     <ItemGroup>
       <None Include="AutoAscendingHeights.csproj.user" />
