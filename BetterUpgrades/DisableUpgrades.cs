@@ -10,9 +10,9 @@ public class DisableUpgrades: MonoBehaviour
 
     private PlayerInventory _playerInventory;
 
-    private readonly String RandomBoxMagnetName = "Random Box Vertical Magnet";
-    private readonly String SpecialRandomBoxMagnetName = "Special Random Box Vertical Magnet";
-    private readonly String DeltaWormsName = "Delta Worms";
+    private readonly String RandomBoxMagnetName = "upgrade_random_box_vertical_magnet";
+    private readonly String SpecialRandomBoxMagnetName = "upgrade_special_random_box_vertical_magnet";
+    private readonly String DeltaWormsName = "enemy_delta_worm_p";
 
     private static Boolean DisableRandomBoxMagnet => !Plugin.Settings.RandomBoxMagnet.Value;
     private static Boolean DisableSpecialRandomBoxMagnet => !Plugin.Settings.SpecialRandomBoxMagnet.Value;
@@ -61,7 +61,7 @@ public class DisableUpgrades: MonoBehaviour
                 Upgrade upgrade = upgradesList[i];
                 if (upgrade == null) continue;
 
-                Plugin.Logger.Msg($"Upgrade [{i}]: Name: {upgrade.localizedName}, Description: {upgrade.localizedDescription}");
+                Plugin.Logger.Msg($"Upgrade [{i}]: Name: {upgrade.name}, LocalName: {upgrade.localizedName}, Description: {upgrade.localizedDescription}");
             }
         }
     
@@ -81,7 +81,7 @@ public class DisableUpgrades: MonoBehaviour
         foreach (Upgrade upgrade in upgradesList)
         { 
             if (upgrade == null) continue;
-            if (upgrade.localizedName == upgradeName)
+            if (upgrade.name == upgradeName)
             {
                 upgradeToDisable = upgrade;
                 break;
@@ -91,6 +91,7 @@ public class DisableUpgrades: MonoBehaviour
         if (PluginSetting && upgradeToDisable != null)
         {
             upgradeToDisable.disabled = true;
+            upgradeToDisable.bought = false;
 
             Plugin.Logger.Msg($"Upgrade {upgradeToDisable.localizedName} disabled");
         }
