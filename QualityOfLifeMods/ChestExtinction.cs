@@ -1,9 +1,7 @@
 ﻿using UnityEngine;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
-using static UnityEngine.Random;
+using MelonLoader;
+using Il2Cpp;
 
 namespace QualityOfLifeMods
 {
@@ -25,7 +23,8 @@ namespace QualityOfLifeMods
         private void Awake()
         {
             Instance = this;
-            Plugin.Log.LogDebug("ChestExtinction Awake() called");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("ChestExtinction Awake() called");
 
             chestExtinction = Divinities.list.ChestExtinction;
             ChestExtinctionID = GetDivinityID(chestExtinction);
@@ -35,19 +34,21 @@ namespace QualityOfLifeMods
         }
         private void Start()
         {
-            Plugin.Log.LogDebug("Checking Chest Extinction state on game start");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Checking Chest Extinction state on game start");
 
             if (DivinitiesManager.instance != null)
             {
-                Plugin.Log.LogDebug("DivinitiesManager found.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("DivinitiesManager found.");
                 _chestExtinctionActive = Divinities.list.CheckUnlocked(chestExtinction);
             }
             else
             {
-                Plugin.Log.LogError("DivinitiesManager instance is null!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("DivinitiesManager instance is null!");
             }
 
-            ToggleChestExtinction("Chest Extinction Purchaser", ref _chestExtinctionPurchaserEnabled, Plugin.Settings.ChestPurchaseShowPopup.Value);
 
         }
         private void LateUpdate()
@@ -55,11 +56,6 @@ namespace QualityOfLifeMods
             if (Input.GetKeyDown(Plugin.Settings.ChestPurchaseToggleKey.Value))
             {
                 ToggleChestExtinction("Chest Extinction Purchaser", ref _chestExtinctionPurchaserEnabled, Plugin.Settings.ChestPurchaseShowPopup.Value);
-            }
-
-            if (Input.GetKeyDown(Plugin.Settings.AddDragonScaleKey.Value))
-            {
-                AddMoreDragonScales(5.0);
             }
 
         }
@@ -70,7 +66,7 @@ namespace QualityOfLifeMods
             Drop dragonScale = Drops.list.DragonScale;
             if (dragonScale == null)
             {
-                Plugin.Log.LogInfo("DragonScale drop not found in Drops.list!");
+                Melon<Plugin>.Logger.Msg("DragonScale drop not found in Drops.list!");
                 return;
             }
 
@@ -78,14 +74,14 @@ namespace QualityOfLifeMods
             // Parameters: quantity, drop, isIdle, addQuestProgress, sound, dontDouble, surpassMaxLimit, showNotification
             double newTotal = DropsManager.instance.AddDrop(amount, dragonScale, false, false, true, false, false, true);
 
-            Plugin.Log.LogInfo($"Added {amount} DragonScales. New total: {newTotal}");
+            Melon<Plugin>.Logger.Msg($"Added {amount} DragonScales. New total: {newTotal}");
         }
 
 
         private void ToggleChestExtinction(string type, ref bool state, bool showPopup)
         {
             state = !state;
-            Plugin.Log.LogInfo($"{type} is now: {(state ? "ON" : "OFF")}");
+            Melon<Plugin>.Logger.Msg($"{type} is now: {(state ? "ON" : "OFF")}");
 
             if (showPopup)
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
@@ -97,14 +93,16 @@ namespace QualityOfLifeMods
         {
             if (DivinitiesManager.instance != null)
             {
-                Plugin.Log.LogDebug("Activating Chest Extinction.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Activating Chest Extinction.");
 
                 DivinitiesManager.instance.ActivateDivinity(ChestExtinctionID);
                 _chestExtinctionActive = true;
             }
             else
             {
-                Plugin.Log.LogError("DivinitiesManager instance is null! Cannot activate Chest Extinction.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("DivinitiesManager instance is null! Cannot activate Chest Extinction.");
             }
         }
 
@@ -112,14 +110,16 @@ namespace QualityOfLifeMods
         {
             if (DivinitiesManager.instance != null)
             {
-                Plugin.Log.LogDebug("Deactivating Chest Extinction divinity.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Deactivating Chest Extinction divinity.");
 
                 DivinitiesManager.instance.DeactivateDivinity(ChestExtinctionID);
                 _chestExtinctionActive = false;
             }
             else
             {
-                Plugin.Log.LogError("DivinitiesManager instance is null! Cannot deactivate Chest Extinction.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("DivinitiesManager instance is null! Cannot deactivate Chest Extinction.");
             }
         }
         public string GetDivinityID(Divinity divinity)
@@ -127,7 +127,8 @@ namespace QualityOfLifeMods
 
             if (divinity == null)
             {
-                Plugin.Log.LogDebug("Divinity instance is null.");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("Divinity instance is null.");
                 return "";
             }
 

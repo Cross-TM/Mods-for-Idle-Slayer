@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.Events;
+﻿using UnityEngine;
+using Il2Cpp;
+using IdleSlayerMods.Common.Extensions;
+using HarmonyLib;
 
 namespace NoSpecialBoxesMode
 {
@@ -10,123 +9,109 @@ namespace NoSpecialBoxesMode
     {
         public static NoSpecialBoxes Instance { get; private set; }
 
-        private bool _specialBoxesDisabled;
-        private bool _completeBonusSlider;
-        private float _timer = 0f;
-        private SpecialRandomBox _boxToReenable;
-        private BonusStartSlider _bonusSlider;
+        private bool _specialBoxesEnabled;
+        private bool _boxesToggledOnAgain;
+
+        private MapController _mapController;
+        private PlayerInventory _playerInventory;
+
+        private Maps _maps;
 
 
         private void Awake()
         {
             Instance = this;
-            Plugin.Log.LogDebug("NoSpecialBoxes Awake() called");
 
-            _specialBoxesDisabled = false; // Default state (enabled)
-        }
+            Plugin.Logger.Debug("NoSpecialBoxes Awake() called");
 
-        private void Update()
-        {
-            if (_timer > 0)
+            _mapController = MapController.instance;
+
+            _playerInventory = PlayerInventory.instance;
+
+            _specialBoxesEnabled = Plugin.Settings.NoSpecialBoxesEnabled.Value;
+
+            _maps = Maps.list;
+            if (_maps == null)
             {
-                _timer -= Time.deltaTime;
-                if (_timer <= 0 && _boxToReenable != null)
-                {
-                    _boxToReenable.gameObject.SetActive(true);
-                    Plugin.Log.LogDebug($"Special Box re-enabled after delay.");
-                    _boxToReenable = null;
-                }
+                Plugin.Logger.Debug("Maps instance not initialized. Check your scene setup.");
             }
-
         }
 
         private void LateUpdate()
         {
-            if (Input.GetKeyDown(Plugin.Settings.SpecialBoxesToggleKey.Value))
+#if DEBUG
+            if (Input.GetKeyDown(KeyCode.P))
             {
-                ToggleSetting("Special Boxes", ref _specialBoxesDisabled, Plugin.Settings.SpecialBoxesShowPopup.Value);
-                TurnOffSetting("Bonus Mode Slider Bypass", ref _completeBonusSlider);
+                _mapController.ChangeMap(_mapController.CurrentBonusMap());
+            }
+            if (Input.GetKeyDown(KeyCode.O))
+            {
+                _mapController.ChangeMap(_maps.VictorBossFight);
+            }
+#endif
+
+            if (!_specialBoxesEnabled && _playerInventory.specialRandomBoxChance != 0)
+            {
+                _playerInventory.specialRandomBoxChance = 0f;
+            }
+            else if (_specialBoxesEnabled && _boxesToggledOnAgain)
+            {
+                var currentTime = TimeManager.GetCurrentDateTime(false);
+                double currentUnixTimeStamp = TimeManager.GetUnixTimeStampFromDate(currentTime);
+
+                if (currentUnixTimeStamp - _mapController.specialRandomBoxLastUsed > 7200)
+                {
+                    _playerInventory.specialRandomBoxChance = 100f;
+                }
+                else
+                {
+                    _boxesToggledOnAgain = false;
+                }
             }
 
-            // Check if the user wants to skip the bonus slider
-            if (Input.GetKeyDown(Plugin.Settings.BonusModeToggleKey.Value))
+            if (Input.GetKeyDown(Plugin.Settings.SpecialBoxesToggleKey.Value))
             {
-                //SkipBonusModeSlider();
-                ToggleSetting("Bonus Mode Slider Bypass", ref _completeBonusSlider, Plugin.Settings.BonusModeShowPopup.Value);
-                TurnOffSetting("Special Boxes", ref _specialBoxesDisabled);
+                ToggleSetting("Special Boxes", ref _specialBoxesEnabled, Plugin.Settings.SpecialBoxesShowPopup.Value);
             }
         }
 
         private void ToggleSetting(string type, ref bool state, bool showPopup)
         {
             state = !state;
-            Plugin.Log.LogInfo($"{type} are: {(state ? "OFF" : "ON")}");
 
-            if (showPopup && type == "Special Boxes")
-            {
-                Plugin.ModHelperInstance.ShowNotification(state ? $"{type} disabled!" : $"{type} enabled!", state);
-            }
-            else if (showPopup && type == "Bonus Mode Slider Bypass")
-            {
-                Plugin.ModHelperInstance.ShowNotification(state ? $"{type} activated!" : $"{type} deactivated!", state);
-            }
+            Plugin.Logger.Msg($"{type} are: {(state ? "ON" : "OFF")}");
+            if (showPopup)
+                Plugin.ModHelperInstance.ShowNotification(state ? $"{type} enabled!" : $"{type} disabled!", state);
+
+            _boxesToggledOnAgain = state;
+            Plugin.Settings.NoSpecialBoxesEnabled.Value = state;
         }
 
-        private void TurnOffSetting(string type, ref bool state)
+        public void SkipSlider(BonusStartSlider slider)
         {
-            state = false;
-            Plugin.Log.LogDebug($"{type} are: {(state ? "OFF" : "ON")}");
+            if (GameState.IsBonus())
+            {
+                if (slider == null) return;
+
+                while (!slider.sliderReady)
+                {
+                    Plugin.Logger.Debug("Waiting for slider to be ready...");
+                }
+
+                slider.confirmAction?.Invoke();
+            }
         }
 
-        public void HandleSpecialBoxSpawn(SpecialRandomBox box)
+        [HarmonyPatch(typeof(BonusStartSlider), "SetRandomPuzzle")]
+        public class BonusStartSliderPatch
         {
-            if (!_specialBoxesDisabled)
+            [HarmonyPostfix]
+            static void Postfix(BonusStartSlider __instance)
             {
-                Plugin.Log.LogDebug("Special Boxes are enabled. No action taken.");
-                return;
+                NoSpecialBoxes.Instance.SkipSlider(__instance);
+                Plugin.Logger.Debug("Detected BonusStartSlider creation.");
             }
-
-            Plugin.Log.LogDebug("Special Box detected! Disabling...");
-
-            _boxToReenable = box;
-            box.gameObject.SetActive(false);
-            _timer = 30f; // 30-second delay before re-enabling
         }
 
-        public void SetBonusSlider(BonusStartSlider slider)
-        {
-            Plugin.Log.LogDebug("BonusStartSlider instance registered.");
-            _bonusSlider = slider;
-            SkipBonusModeSlider();
-        }
-
-        private void SkipBonusModeSlider()
-        {
-            if (_bonusSlider == null)
-            {
-                Plugin.Log.LogError("No BonusStartSlider detected! Cannot skip slider.");
-                return;
-            }
-
-            Plugin.Log.LogDebug("Skipping Bonus Mode Slider...");
-
-            // Set slider to max and mark it as ready
-            _bonusSlider.value = _bonusSlider.maxValue;
-            _bonusSlider.sliderReady = true;
-
-            if (_bonusSlider.confirmAction != null)
-            {
-                Plugin.Log.LogDebug("Invoking confirmAction...");
-                _bonusSlider.confirmAction.Invoke();
-            }
-            else
-            {
-                Plugin.Log.LogError("confirmAction is null, skipping puzzle might not work.");
-            }
-
-            // Reset the reference to avoid keeping an old instance
-            _bonusSlider = null;
-            Plugin.Log.LogDebug("BonusStartSlider reference cleared.");
-        }
     }
 }

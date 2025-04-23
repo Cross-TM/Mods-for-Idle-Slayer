@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -18,22 +18,27 @@
   <ItemGroup>
     <None Include="AutoRageMode.csproj.user" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.*" IncludeAssets="compile" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="2.1.0" />
+    <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
+	  <PackageReference Include="Lib.Harmony" Version="2.3.6" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Assembly-CSharp">
+    <ItemGroup>
+		<Reference Include="IdleSlayerMods.Common">
+			<HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
+		</Reference>
+		<Reference Include="Assembly-CSharp">
       <HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="IdleSlayerMods.Common">
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Idle Slayer\BepInEx\plugins\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Il2Cppmscorlib">
+		<Reference Include="Il2Cpp">
+			<HintPath>..\Libraries\Il2Cpp.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2CppInterop.Runtime">
+			<HintPath>..\Libraries\Il2CppInterop.Runtime.dll</HintPath>
+		</Reference>
+		<Reference Include="Il2Cppmscorlib">
       <HintPath>..\Libraries\Il2Cppmscorlib.dll</HintPath>
       <Private>False</Private>
     </Reference>

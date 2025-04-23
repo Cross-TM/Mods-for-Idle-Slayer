@@ -1,46 +1,39 @@
-﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Unity.IL2CPP;
-using HarmonyLib;
+﻿using HarmonyLib;
 using IdleSlayerMods.Common;
 using Il2CppInterop.Runtime.Injection;
-using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.SceneManagement;
+using MelonLoader;
+using MyPluginInfo = QualityOfLifeMods.MyPluginInfo;
+using Plugin = QualityOfLifeMods.Plugin;
+
+[assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
+[assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
 namespace QualityOfLifeMods;
 
-[BepInPlugin("com.CrossTM.QualityOfLife", "Quality Of Life", "1.0.0")]
-[BepInDependency("IdleSlayerMods.Common")]
-// ReSharper disable once ClassNeverInstantiated.Global
-public class Plugin : BasePlugin
+public class Plugin : MelonMod
 {
-    internal new static ManualLogSource Log;
     internal static Settings Settings;
     internal static ModHelper ModHelperInstance;
 
-    public override void Load()
+    public override void OnInitializeMelon()
     {
-        Log = base.Log;
-        Settings = new(Config);
         ClassInjector.RegisterTypeInIl2Cpp<ChestExtinctionPurchaser>();
         ClassInjector.RegisterTypeInIl2Cpp<MinionSender>();
 
+        Settings = new(MyPluginInfo.PLUGIN_GUID);
+        LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
-        SceneManager.sceneLoaded += (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
-        Log.LogInfo($"Quality Of Life Plugin is loaded!");
 
-        var harmony = new Harmony("com.CrossTM.QualityOfLife");
+        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
         harmony.PatchAll();
     }
 
     private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
-        if (scene.name != "Game") return;
-        AddComponent<ChestExtinctionPurchaser>();
-        AddComponent<MinionSender>();
-        SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
+        if (sceneName != "Game") return;
+        ModUtils.RegisterComponent<ChestExtinctionPurchaser>();
+        ModUtils.RegisterComponent<MinionSender>();
     }
 }

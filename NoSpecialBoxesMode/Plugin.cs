@@ -1,44 +1,37 @@
-﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Unity.IL2CPP;
-using HarmonyLib;
+﻿using HarmonyLib;
 using IdleSlayerMods.Common;
 using Il2CppInterop.Runtime.Injection;
-using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.SceneManagement;
+using MelonLoader;
+using MyPluginInfo = NoSpecialBoxesMode.MyPluginInfo;
+using Plugin = NoSpecialBoxesMode.Plugin;
+using Il2Cpp;
+
+[assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
+[assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
 namespace NoSpecialBoxesMode;
 
-[BepInPlugin("com.CrossTM.NoSpecialBoxesMode", "No Special Boxes Mode", "1.0.0")]
-[BepInDependency("IdleSlayerMods.Common")]
-public class Plugin : BasePlugin
+public class Plugin : MelonMod
 {
-    internal new static ManualLogSource Log;
     internal static Settings Settings;
     internal static ModHelper ModHelperInstance;
+    internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
 
-    public override void Load()
+    public override void OnInitializeMelon()
     {
-        Log = base.Log;
-        Settings = new(Config);
-        ClassInjector.RegisterTypeInIl2Cpp<NoSpecialBoxes>();
-
+        Settings = new(MyPluginInfo.PLUGIN_GUID);
+        LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
-        SceneManager.sceneLoaded += (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
-        Log.LogInfo($"No Special Boxes Mode Plugin is loaded!");
 
-        var harmony = new Harmony("com.CrossTM.NoSpecialBoxesMode");
-        Log.LogDebug("Applying Harmony Patches...");
+        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
         harmony.PatchAll();
     }
 
     private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
 
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
-        if (scene.name != "Game") return;
-        AddComponent<NoSpecialBoxes>();
-        SceneManager.sceneLoaded -= (UnityAction<Scene, LoadSceneMode>)OnSceneLoaded;
+        if (sceneName != "Game") return;
+        ModUtils.RegisterComponent<NoSpecialBoxes>();
     }
 }
