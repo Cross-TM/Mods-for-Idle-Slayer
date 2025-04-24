@@ -10,7 +10,6 @@ namespace MinionManaging
         public static MinionSender Instance { get; private set; }
         public static AscensionManager _ascensionManager => AscensionManager.instance;
         private bool _minionSenderEnabled;
-        private bool DebugMode = false;
         private bool IsRunning = true;
 
         public bool MinionSenderEnabled

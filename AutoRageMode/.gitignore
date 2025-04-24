@@ -1,9 +1,0 @@
-# Ignore build artifacts
-bin/
-obj/
-.vs/
-
-# Ignore user-specific settings
-*.user
-*.suo
-*.cache

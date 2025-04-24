@@ -3,16 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Product>Minion Sender</Product>
-    <Version>1.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-    <RestoreAdditionalProjectSources>
-      https://api.nuget.org/v3/index.json;
-      https://nuget.bepinex.dev/v3/index.json;
-      https://nuget.samboy.dev/v3/index.json
-    </RestoreAdditionalProjectSources>
     <PackageId>MinionSender</PackageId>
-    <Platforms>AnyCPU;x64</Platforms>
+	  <Version>1.1.0</Version>
+	  <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   
   <ItemGroup>

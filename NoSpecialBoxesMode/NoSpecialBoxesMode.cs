@@ -28,7 +28,7 @@ namespace NoSpecialBoxesMode
 
             _playerInventory = PlayerInventory.instance;
 
-            _specialBoxesEnabled = Plugin.Settings.NoSpecialBoxesEnabled.Value;
+            _specialBoxesEnabled = Plugin.Config.NoSpecialBoxesEnabled.Value;
 
             _maps = Maps.list;
             if (_maps == null)
@@ -69,9 +69,9 @@ namespace NoSpecialBoxesMode
                 }
             }
 
-            if (Input.GetKeyDown(Plugin.Settings.SpecialBoxesToggleKey.Value))
+            if (Input.GetKeyDown(Plugin.Config.SpecialBoxesToggleKey.Value))
             {
-                ToggleSetting("Special Boxes", ref _specialBoxesEnabled, Plugin.Settings.SpecialBoxesShowPopup.Value);
+                ToggleSetting("Special Boxes", ref _specialBoxesEnabled, Plugin.Config.SpecialBoxesShowPopup.Value);
             }
         }
 
@@ -84,7 +84,7 @@ namespace NoSpecialBoxesMode
                 Plugin.ModHelperInstance.ShowNotification(state ? $"{type} enabled!" : $"{type} disabled!", state);
 
             _boxesToggledOnAgain = state;
-            Plugin.Settings.NoSpecialBoxesEnabled.Value = state;
+            Plugin.Config.NoSpecialBoxesEnabled.Value = state;
         }
 
         public void SkipSlider(BonusStartSlider slider)
