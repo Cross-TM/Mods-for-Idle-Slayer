@@ -1,8 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-using QualityOfLifeMods;
-using System.Linq;
-using BepInEx.Logging;
+using MelonLoader;
+using Il2Cpp;
 
 namespace QualityOfLifeMods {
 
@@ -12,19 +11,22 @@ namespace QualityOfLifeMods {
         [HarmonyPostfix]
         public static void OnSoulsEventStart()
         {
-            Plugin.Log.LogDebug("Souls event detected!");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Souls event detected!");
 
             if (ChestExtinctionPurchaser.Instance != null)
             {
                 if (ChestExtinctionPurchaser.Instance.ChestExtinctionPurchaserEnabled)
                 {
-                    Plugin.Log.LogDebug("Turning off Chest Extinction");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Turning off Chest Extinction");
                     ChestExtinctionPurchaser.Instance.DeactivateChestExtinction();
                 }
             }
             else
             {
-                Plugin.Log.LogError("ChestExtinctionPurchaser instance is null!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("ChestExtinctionPurchaser instance is null!");
             }
         }
     }
@@ -35,19 +37,22 @@ namespace QualityOfLifeMods {
         [HarmonyPostfix]
         public static void OnSoulsEventEnd()
         {
-            Plugin.Log.LogDebug("Souls event finished!");
+            if (Debug.isDebugBuild)
+                Melon<Plugin>.Logger.Msg("Souls event finished!");
 
             if (ChestExtinctionPurchaser.Instance != null)
             {
                 if (ChestExtinctionPurchaser.Instance.ChestExtinctionPurchaserEnabled)
                 {
-                    Plugin.Log.LogDebug("Turning on Chest Extinction");
+                    if (Debug.isDebugBuild)
+                        Melon<Plugin>.Logger.Msg("Turning on Chest Extinction");
                     ChestExtinctionPurchaser.Instance.ActivateChestExtinction();
                 }
             }
             else
             {
-                Plugin.Log.LogError("ChestExtinctionPurchaser instance is null!");
+                if (Debug.isDebugBuild)
+                    Melon<Plugin>.Logger.Msg("ChestExtinctionPurchaser instance is null!");
             }
         }
     }
