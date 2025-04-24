@@ -1,25 +1,37 @@
-﻿using BepInEx.Configuration;
-using IdleSlayerMods.Common.Config;
-using UnityEngine;
+﻿using HarmonyLib;
+using IdleSlayerMods.Common;
+using Il2CppInterop.Runtime.Injection;
+using MelonLoader;
+using MyPluginInfo = NoSpecialBoxesMode.MyPluginInfo;
+using Plugin = NoSpecialBoxesMode.Plugin;
+using Il2Cpp;
+
+[assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
+[assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
 namespace NoSpecialBoxesMode;
 
-internal sealed class Settings(ConfigFile cfg) : BaseConfig(cfg)
+public class Plugin : MelonMod
 {
-    internal ConfigEntry<KeyCode> SpecialBoxesToggleKey;
-    internal ConfigEntry<KeyCode> BonusModeToggleKey;
-    internal ConfigEntry<bool> SpecialBoxesShowPopup;
-    internal ConfigEntry<bool> BonusModeShowPopup;
+    internal static Settings Settings;
+    internal static ModHelper ModHelperInstance;
+    internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
 
-    protected override void SetBindings()
+    public override void OnInitializeMelon()
     {
-        SpecialBoxesToggleKey = Bind("Special Boxes Mode", "SpecialBoxesToggleKey", KeyCode.S,
-            "The key bind for toggling no Special Boxes Mode");
-        BonusModeToggleKey = Bind("Bonus Mode Bypass", "BonusModeToggleKey", KeyCode.A,
-            "The key bind for bypassing Bonus Mode Slider");
-        SpecialBoxesShowPopup = Bind("Special Boxes Mode", "SpecialBoxesShowPopup", true,
-            "Show a message popup to indicate whether no Special Boxes Mode has been toggled.");
-        BonusModeShowPopup = Bind("Bonus Mode Bypass", "BonusModeShowPopup", true,
-            "Show a message popup to indicate whether bypasing Bonus Mode Slider has been toggled.");
+        Settings = new(MyPluginInfo.PLUGIN_GUID);
+        LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+        ModHelper.ModHelperMounted += SetModHelperInstance;
+
+        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
+        harmony.PatchAll();
+    }
+
+    private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
+
+    public override void OnSceneWasLoaded(int buildIndex, string sceneName)
+    {
+        if (sceneName != "Game") return;
+        ModUtils.RegisterComponent<NoSpecialBoxes>();
     }
 }

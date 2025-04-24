@@ -1,37 +1,37 @@
-﻿using HarmonyLib;
 using IdleSlayerMods.Common;
-using Il2CppInterop.Runtime.Injection;
 using MelonLoader;
-using MyPluginInfo = NoSpecialBoxesMode.MyPluginInfo;
-using Plugin = NoSpecialBoxesMode.Plugin;
-using Il2Cpp;
+using System.Diagnostics;
+using MyPluginInfo = AutoJumpMod.MyPluginInfo;
+using Plugin = AutoJumpMod.Plugin;
 
 [assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
 [assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
 
-namespace NoSpecialBoxesMode;
+namespace AutoJumpMod;
 
 public class Plugin : MelonMod
 {
-    internal static Settings Settings;
+    internal static ConfigFile Config;
     internal static ModHelper ModHelperInstance;
     internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
 
-    public override void OnInitializeMelon()
+    [Conditional("DEBUG")]
+    public static void DLog(string message)
     {
-        Settings = new(MyPluginInfo.PLUGIN_GUID);
-        LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
-        ModHelper.ModHelperMounted += SetModHelperInstance;
-
-        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
-        harmony.PatchAll();
+        Logger.Msg(message);
     }
 
+    public override void OnInitializeMelon()
+    {
+        Config = new(MyPluginInfo.PLUGIN_GUID);
+        Logger.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
+        ModHelper.ModHelperMounted += SetModHelperInstance;
+    }
     private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
 
     public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
         if (sceneName != "Game") return;
-        ModUtils.RegisterComponent<NoSpecialBoxes>();
+        ModUtils.RegisterComponent<AutoJump>();
     }
 }
