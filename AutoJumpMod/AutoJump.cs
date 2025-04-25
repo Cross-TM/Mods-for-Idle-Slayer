@@ -20,7 +20,9 @@ public class AutoJump : MonoBehaviour
     private const string SkillBonusGaps2Name = "ascension_upgrade_protect";
     private const string SkillBonusStage3Name = "map_bonus_stage_3";
     private const string SkillBonusGaps3Name = "ascension_upgrade_board_the_platforms";
-        
+    private const string SkillBowPurchasedName = "ascension_upgrade_sacred_book_of_projectiles";
+    private const string SkillBowBoostName = "ascension_upgrade_stability";
+
     public static AutoJump Instance { get; private set; }
     public bool BootsPurchased => _bootsPurchased;
     private bool _prevBootsUnlocked;
@@ -42,6 +44,7 @@ public class AutoJump : MonoBehaviour
 
     bool dummy;
 
+    private Boost _boost;
     private JumpPanel _jumpPanel;
     private PlayerMovement _pm;
     private PointerEventData _jumpSpot;
@@ -56,6 +59,8 @@ public class AutoJump : MonoBehaviour
     private AscensionSkill _bonusGaps2Skill;
     private AscensionSkill _bonusStage3Skill;
     private AscensionSkill _bonusGaps3Skill;
+    private AscensionSkill _bowPurchasedSkill;
+    private AscensionSkill _bowBoostSkill;
 
     void Awake()
     {
@@ -73,6 +78,7 @@ public class AutoJump : MonoBehaviour
         _bonusMapCtrl = BonusMapController.instance;
         _playerInventory = PlayerInventory.instance;
         _windDash = FindObjectOfType<WindDash>();
+        _boost = FindObjectOfType<Boost>();
 
         _autoJump = Plugin.Config.UseAutoJump.Value;
     }
@@ -198,6 +204,14 @@ public class AutoJump : MonoBehaviour
                 case SkillBonusGaps3Name:
                     _bonusGaps3Skill = skill;
                     break;
+
+                case SkillBowPurchasedName:
+                    _bowPurchasedSkill = skill;
+                    break;
+
+                case SkillBowBoostName:
+                    _bowBoostSkill = skill;
+                    break;
             }
         }
     }
@@ -308,6 +322,17 @@ public class AutoJump : MonoBehaviour
             _mapCtrl.ChangeMap(_mapCtrl.CurrentBonusMap());
         }
 
+
+        if (Input.GetKeyDown(KeyCode.F9))
+        {
+            _bowPurchasedSkill.unlocked = !_bowPurchasedSkill.unlocked;
+
+        }
+
+        if (Input.GetKeyDown(KeyCode.F10))
+        {
+            _bowBoostSkill.unlocked = !_bowBoostSkill.unlocked;
+        }
     }
 
     IEnumerator SwitchStage2()
@@ -384,6 +409,8 @@ public class AutoJump : MonoBehaviour
     }
     private bool CanShoot() =>
         !_isShooting
+        && _bowPurchasedSkill.unlocked
+        && (_bowBoostSkill.unlocked || !_boost.IsActive())
         && !_pm.bowDisabled
         && !_windDash.IsActive()
         && _pm.isMoving
