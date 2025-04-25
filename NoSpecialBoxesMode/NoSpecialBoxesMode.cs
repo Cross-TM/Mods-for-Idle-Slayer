@@ -17,7 +17,6 @@ namespace NoSpecialBoxesMode
 
         private Maps _maps;
 
-
         private void Awake()
         {
             Instance = this;
@@ -73,6 +72,7 @@ namespace NoSpecialBoxesMode
             {
                 ToggleSetting("Special Boxes", ref _specialBoxesEnabled, Plugin.Config.SpecialBoxesShowPopup.Value);
             }
+
         }
 
         private void ToggleSetting(string type, ref bool state, bool showPopup)
