@@ -62,8 +62,7 @@ public class ChestKiller : MonoBehaviour
                     return; // Exit early if chests are not ready
 
                 Plugin.Logger.Msg("Chest Event Started!");
-                if (DebugMode)
-                    LowerStats();
+                LowerStats();
 
                 MelonCoroutines.Start(OpenChests());
 
