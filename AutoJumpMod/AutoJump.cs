@@ -32,6 +32,7 @@ public class AutoJump : MonoBehaviour
     private bool _isJumping;
     private bool _isShooting;
     private bool _didStage3Delay;
+    private bool _isAttacking;
 
     private int _bonusSection;
     private bool _wasClockVisibleLastFrame;
@@ -403,13 +404,24 @@ public class AutoJump : MonoBehaviour
         {
             if (_pm.IsGrounded())
                 _pm.ShootArrow();
-            _isShooting = true;
-            MelonCoroutines.Start(ShootArrows());
+         
+            if (!_isShooting)
+            {
+                _isShooting = true;
+                MelonCoroutines.Start(ShootArrows());
+            }
+        }
+
+        //If attacking something with the sword
+        if (GameState.IsRunner() && !_pm.isMoving && !_isAttacking)
+        {
+            _isAttacking = true;
+            MelonCoroutines.Start(AttackGiant());
         }
     }
+
     private bool CanShoot() =>
-        !_isShooting
-        && _bowPurchasedSkill.unlocked
+        _bowPurchasedSkill.unlocked
         && (_bowBoostSkill.unlocked || !_boost.IsActive())
         && !_pm.bowDisabled
         && !_windDash.IsActive()
@@ -454,6 +466,14 @@ public class AutoJump : MonoBehaviour
         _pm.ShootArrow();
         yield return new WaitForSeconds(0.1f);
         _isShooting = false;
+    }
+
+    private IEnumerator AttackGiant()
+    {
+        _jumpPanel.OnPointerDown(_jumpSpot);
+        _jumpPanel.OnPointerUp(_jumpSpot);
+        yield return new WaitForSeconds(0.2f);
+        _isAttacking = false;
     }
 
     [HarmonyPatch(typeof(RandomBox), nameof(RandomBox.OnObjectSpawn))]
