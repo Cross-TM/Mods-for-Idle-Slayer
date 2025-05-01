@@ -109,11 +109,11 @@ public class AutoAscend : MonoBehaviour
         //        CheckQuests();
 //        _longAscendingHeights = true;
 
-        if (_longAscendingHeights && _autoAscend)
+/*        if (_longAscendingHeights && _autoAscend)
             _ascendingCtrl.startingBoost = 600f;
         else
             _ascendingCtrl.startingBoost = StartingBoost;
-
+*/
 
         if (Input.GetKeyDown(Plugin.Config.AutoAscendingHeightsToggleKey.Value))
             ToggleAutoAscend();
