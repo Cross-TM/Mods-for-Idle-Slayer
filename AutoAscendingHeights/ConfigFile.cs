@@ -11,7 +11,7 @@ internal sealed class ConfigFile(string configName) : BaseConfig(configName)
 
     protected override void SetBindings()
     {
-        AutoAscendingHeightsToggleKey = Bind("Auto Ascending Heights", "AutoAscendingHeightsToggleKey", KeyCode.A,
+        AutoAscendingHeightsToggleKey = Bind("Auto Ascending Heights", "AutoAscendingHeightsToggleKey", KeyCode.Q,
                 "The key bind for toggling auto Ascending Heights");
         AutoAscendingHeightsShowPopup = Bind("Auto Ascending Heights", "AutoAscendingHeightsShowPopup", true,
                 "Show a message popup to indicate whether auto Ascending Heights has been toggled.");

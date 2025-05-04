@@ -6,7 +6,6 @@ using HarmonyLib;
 using MelonLoader;
 using IdleSlayerMods.Common.Extensions;
 using Il2Cpp;
-using UnityEngine.SceneManagement;
 
 namespace AutoAscendingHeights;
 
@@ -23,8 +22,6 @@ public class AutoAscend : MonoBehaviour
 
     // singletons
     AscendingHeightsController _ascendingCtrl;
-    MapController _mapCtrl;
-    Maps _maps;
     Divinity _higherAltitudes;
     PlayerMovement _pm;
     JumpPanel _jumpPanel;
@@ -50,8 +47,6 @@ public class AutoAscend : MonoBehaviour
     {
         Instance = this;
         _ascendingCtrl = AscendingHeightsController.instance;
-        _mapCtrl = MapController.instance;
-        _maps = Maps.list;
         _higherAltitudes = Divinities.list.HigherAltitudes;
         _pm = PlayerMovement.instance;
         _pi = PlayerInventory.instance;
@@ -196,31 +191,14 @@ public class AutoAscend : MonoBehaviour
         }
     }
 
-
+#if DEBUG
     public void Update()
     {
-#if DEBUG
         if (Input.GetKeyDown(KeyCode.P))
         {
-            _mapCtrl.ChangeMap(_maps.AscendingHeightsStage1);
+            MapController.instance?.ChangeMap(Maps.list.AscendingHeightsStage1);
         }
-#endif
     }
-}
 
-/*
- * 
- * 
- * 
- * Quest.CanBeCompleted = start
- * Quest.CanBeClaimed = finish
- * 
- * PlayerInventory _pi
- * 
- * var AllQuests = _pi.allQuests
- * Enemy _frozenSouls = Enemies.list.FrozenSouls
- * Enemy _frozenCoins = Enemies.list.FrozenCoins
- * 
- * Quest[] AscendingQuests
- * 
- */
+#endif
+}
