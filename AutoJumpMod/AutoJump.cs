@@ -4,13 +4,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections;
 using HarmonyLib;
-using Il2CppSystem;
 using System.Reflection;
-using Il2CppInterop.Runtime.Injection;
-using System;
-using System.Linq;
-using UnityEngineInternal;
-using static MelonLoader.MelonLogger;
+using UnityEngine.UI;
 
 namespace AutoJumpMod
 {
@@ -23,7 +18,7 @@ namespace AutoJumpMod
         private FieldInfo _field;
         private bool _initialized;
 
-        public ModFlagChecker(string qualifiedTypeName, string privateFieldName)
+        public ModFlagChecker(string qualifiedTypeName, string privateFieldName = "")
         {
             _qualifiedTypeName = qualifiedTypeName;
             _privateFieldName = privateFieldName;
@@ -37,9 +32,11 @@ namespace AutoJumpMod
             _type = System.Type.GetType(_qualifiedTypeName);
             if (_type == null)
             {
-                Plugin.Logger.Error($"Type not found: {_qualifiedTypeName}");
+//                Plugin.Logger.Error($"Type not found: {_qualifiedTypeName}");
                 return;
             }
+
+            if (string.IsNullOrEmpty(_privateFieldName)) return;
 
             _field = _type.GetField(
                 _privateFieldName,
@@ -109,14 +106,18 @@ namespace AutoJumpMod
         private bool _isShooting;
         private bool _didStage3Delay;
         private bool _isAttacking;
+        private bool _isBreaking;
 
-        private int _bonusSection;
         private bool _wasClockVisibleLastFrame;
         private bool _bootsPurchased;
         private bool _bootsChanged;
         private bool dummy;
         private bool _prevWindDashActive;
-        
+        private bool _bonusSection3Completed;
+
+        private float dualChance;
+        private int _bonusSection;
+
         // reflection-based mod checks
         private readonly ModFlagChecker _bscChecker = new(
             "BonusStageCompleter.BonusStageCompleter, BonusStageCompleter",
@@ -125,6 +126,9 @@ namespace AutoJumpMod
         private readonly ModFlagChecker _autoBoostChecker = new(
             "AutoBoost.AutoBoost, AutoBoost",
             "_windDashEnabled"
+        );
+        private readonly ModFlagChecker _armoryManagerChecker = new(
+            "ArmoryManager.BreakWeapons, ArmoryManager"
         );
 
         private Boost _boost;
@@ -136,6 +140,7 @@ namespace AutoJumpMod
         private MapController _mapCtrl;
         private BonusMapController _bonusMapCtrl;
         private PlayerInventory _playerInventory;
+        private WeaponsManager _weaponsManager;
 
         private AscensionSkill _bootsSkill;
         private AscensionSkill _bonusStage2Skill;
@@ -144,6 +149,7 @@ namespace AutoJumpMod
         private AscensionSkill _bonusGaps3Skill;
         private AscensionSkill _bowPurchasedSkill;
         private AscensionSkill _bowBoostSkill;
+        private RandomEvent dual;
 
         void Awake()
         {
@@ -162,7 +168,7 @@ namespace AutoJumpMod
             _playerInventory = PlayerInventory.instance;
             _windDash = AbilitiesManager.instance.windDash;
             _boost = AbilitiesManager.instance.boost;
-
+            _weaponsManager = WeaponsManager.instance;
             _autoJump = Plugin.Config.UseAutoJump.Value;
         }
 
@@ -180,6 +186,19 @@ namespace AutoJumpMod
 
             _prevBootsUnlocked = _bootsSkill.unlocked;
 
+            var REM = RandomEventManager.instance.randomEvents;
+            if (REM != null)
+            {
+                foreach (var re in REM)
+                {
+                    if (re.name == "Dual Randomness")
+                    {
+                        dual = re;
+                        dualChance = re.chance;
+                        break;
+                    }
+                }
+            }
         }
 
         void LateUpdate()
@@ -191,6 +210,7 @@ namespace AutoJumpMod
             DetectClockFlips();
             HandleBootsLogic();
             HandleAutoJump();
+            MiniArmoryManager();
 #if DEBUG
         HandleMapKeys();
 #endif
@@ -213,6 +233,7 @@ namespace AutoJumpMod
         public bool ShouldSkipAtSpiritBoost() => _bscChecker.GetBoolFlag();
         public bool IsAutoBoostLoaded() => _autoBoostChecker.IsLoaded();
         public bool IsWindDashEnabled() => _autoBoostChecker.GetBoolFlag();
+        public bool IsArmoryManagerLoaded() => _armoryManagerChecker.IsLoaded();
 
 
         void OnDestroy() => Instance = Instance == this ? null : Instance;
@@ -258,6 +279,7 @@ namespace AutoJumpMod
         {
             if (!GameState.IsRunner()) return;
             _bonusSection = 0;
+            _bonusSection3Completed = false;
         }
 
         private void DetectClockFlips()
@@ -269,7 +291,7 @@ namespace AutoJumpMod
             bool inStage3 = GameState.IsBonus()
                             && _mapCtrl.CurrentBonusMap() == Maps.list.BonusStage3;
 
-            if ((inStage1 || inStage3) && !_wasClockVisibleLastFrame && showTime)
+            if ((inStage1 || inStage3) && !_wasClockVisibleLastFrame && showTime && _bonusMapCtrl.currentSectionIndex == _bonusSection)
                 _bonusSection++;
             _wasClockVisibleLastFrame = showTime;
         }
@@ -294,7 +316,7 @@ namespace AutoJumpMod
 
             if (inStage3)
             {
-                if (_bonusSection == 3)
+                if (_bonusSection == 3 && !_bonusSection3Completed)
                 {
                     _bootsSkill.unlocked = _pm.isMoving;
                 }
@@ -303,6 +325,15 @@ namespace AutoJumpMod
                     if (_bonusMapCtrl.showCurrentTime)
                         _bootsSkill.unlocked = true;
                 }
+
+                if (dual != null)
+                {
+                    if (_bonusSection == 2)
+                        dual.chance = 0f;
+                    else
+                        dual.chance = dualChance;
+                }
+
                 _bootsChanged = true;
             }
             else if (inStage2 && _bootsPurchased)
@@ -314,79 +345,6 @@ namespace AutoJumpMod
             {
                 _bootsChanged = false;
                 _bootsSkill.unlocked = true;
-            }
-        }
-        private void HandleMapKeys()
-        {
-            if (Input.GetKeyDown(KeyCode.F1))
-                _mapCtrl.ChangeMap(_mapCtrl.CurrentBonusMap());
-
-            if (Input.GetKeyDown(KeyCode.F2)
-                && _bonusStage2Skill != null
-                && _bonusGaps2Skill != null)
-            {
-                MelonCoroutines.Start(SwitchStage2());
-            }
-
-            if (Input.GetKeyDown(KeyCode.F3)
-                && _bootsSkill != null
-                && !_bonusStage3Skill.unlocked
-                && !_bonusGaps3Skill.unlocked)
-            {
-                _bootsSkill.unlocked = !_bootsSkill.unlocked;
-                _bootsPurchased = _bootsSkill.unlocked;
-            }
-
-            if (Input.GetKeyDown(KeyCode.F4)
-                && _bonusStage3Skill != null
-                && _bootsSkill.unlocked
-                && !_bonusGaps3Skill.unlocked)
-                _bonusStage3Skill.unlocked = !_bonusStage3Skill.unlocked;
-
-            if (Input.GetKeyDown(KeyCode.F5)
-                && _bonusGaps3Skill != null
-                && _bootsSkill.unlocked
-                && _bonusStage3Skill.unlocked)
-                _bonusGaps3Skill.unlocked = !_bonusGaps3Skill.unlocked;
-
-            if (Input.GetKeyDown(KeyCode.F6))
-                _mapCtrl.ChangeMap(_mapCtrl.lastRunnerMap);
-
-            if (Input.GetKeyDown(KeyCode.F7))
-                dummy = IsBscLoaded();
-
-            if (Input.GetKeyDown(KeyCode.F8))
-            {
-                _bonusMapCtrl.spiritBoostEnabled = true;
-                _mapCtrl.ChangeMap(_mapCtrl.CurrentBonusMap());
-            }
-
-
-            if (Input.GetKeyDown(KeyCode.F9))
-            {
-                _bowPurchasedSkill.unlocked = !_bowPurchasedSkill.unlocked;
-
-            }
-
-            if (Input.GetKeyDown(KeyCode.F10))
-            {
-                _bowBoostSkill.unlocked = !_bowBoostSkill.unlocked;
-            }
-        }
-
-        IEnumerator SwitchStage2()
-        {
-            if (_bonusStage2Skill.unlocked && _bonusGaps2Skill.unlocked)
-            {
-                _bonusGaps2Skill.unlocked = false;
-                yield return new WaitForSeconds(0.5f);
-                _bonusStage2Skill.unlocked = false;
-            }
-            else if (!_bonusStage2Skill.unlocked && !_bonusGaps2Skill.unlocked)
-            {
-                _bonusStage2Skill.unlocked = true;
-                yield return new WaitForSeconds(0.5f);
-                _bonusGaps2Skill.unlocked = true;
             }
         }
 
@@ -458,6 +416,62 @@ namespace AutoJumpMod
             }
         }
 
+        private void MiniArmoryManager()
+        {
+            if (!IsArmoryManagerLoaded())
+            {
+                if (!_isBreaking && !_weaponsManager.hasFreeSlot && GameState.IsRunner())
+                {
+                    MelonCoroutines.Start(BreakLastWeapon());
+                }
+            }
+        }
+
+        private IEnumerator BreakLastWeapon() { 
+            if (_weaponsManager == null) yield return null;
+
+            if (!_weaponsManager.hasFreeSlot) 
+            {
+                _isBreaking = true;
+                var list = _weaponsManager.currentItems;
+
+                int before = list.Count;
+                var toBreak = list[list.Count - 1];
+
+                // 2) show the break‑popup
+                _weaponsManager.BreakPopup(toBreak);
+
+                // 3) click “Confirm” when it comes up
+                yield return AutoConfirmBreak();
+
+                // 4) wait until the item has actually left the list
+                yield return new WaitUntil(new System.Func<bool>(() => list.Count < before));
+                
+                _isBreaking = false;
+            }
+        }
+
+        private GameObject _confirmButtonGO;
+        IEnumerator AutoConfirmBreak()
+        {
+            const string path = "UIManager/Popup/Overlay/Panel/Buttons/Confirm Button";
+            Button btn = null;
+
+            if (_confirmButtonGO == null)
+            {
+                while ((_confirmButtonGO = GameObject.Find(path)) == null)
+                    yield return null;
+            }
+
+            btn = _confirmButtonGO.GetComponent<Button>();
+
+            yield return new WaitUntil(new System.Func<bool>(() => btn != null && btn.isActiveAndEnabled));
+
+            btn.onClick.Invoke();
+
+            yield return null;
+        }
+
         private bool CanShoot() =>
             _bowPurchasedSkill.unlocked
             && (_bowBoostSkill.unlocked || !_boost.IsActive())
@@ -514,7 +528,6 @@ namespace AutoJumpMod
             _isAttacking = false;
         }
 
-
         [HarmonyPatch(typeof(RandomBox), nameof(RandomBox.OnObjectSpawn))]
         public class Patch_RandomBox_OnObjectSpawn
         {
@@ -527,7 +540,7 @@ namespace AutoJumpMod
                     AutoJump.Instance.LockBoots();
 
                 if (AutoJump.Instance._bonusSection == 3)
-                    AutoJump.Instance._bonusSection = 4;
+                    AutoJump.Instance._bonusSection3Completed = true;
             }
         }
         private void LockBoots() => _bootsSkill.unlocked = false;
@@ -575,6 +588,80 @@ namespace AutoJumpMod
             {
                 arrow.speed = AutoJump.OriginalArrowSpeed;
                 arrow.electroShotSpeed = AutoJump.OriginalElectroSpeed;
+            }
+        }
+
+        private void HandleMapKeys()
+        {
+            if (Input.GetKeyDown(KeyCode.F1))
+                _mapCtrl.ChangeMap(_mapCtrl.CurrentBonusMap());
+
+            if (Input.GetKeyDown(KeyCode.F2)
+                && _bonusStage2Skill != null
+                && _bonusGaps2Skill != null)
+            {
+                MelonCoroutines.Start(SwitchStage2());
+            }
+
+            if (Input.GetKeyDown(KeyCode.F3)
+                && _bootsSkill != null
+                && !_bonusStage3Skill.unlocked
+                && !_bonusGaps3Skill.unlocked)
+            {
+                _bootsSkill.unlocked = !_bootsSkill.unlocked;
+                _bootsPurchased = _bootsSkill.unlocked;
+            }
+
+            if (Input.GetKeyDown(KeyCode.F4)
+                && _bonusStage3Skill != null
+                && _bootsSkill.unlocked
+                && !_bonusGaps3Skill.unlocked)
+                _bonusStage3Skill.unlocked = !_bonusStage3Skill.unlocked;
+
+            if (Input.GetKeyDown(KeyCode.F5)
+                && _bonusGaps3Skill != null
+                && _bootsSkill.unlocked
+                && _bonusStage3Skill.unlocked)
+                _bonusGaps3Skill.unlocked = !_bonusGaps3Skill.unlocked;
+
+            if (Input.GetKeyDown(KeyCode.F6))
+                _mapCtrl.ChangeMap(_mapCtrl.lastRunnerMap);
+
+            if (Input.GetKeyDown(KeyCode.F7))
+                dummy = IsBscLoaded();
+
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+                _bonusMapCtrl.spiritBoostEnabled = true;
+                _mapCtrl.ChangeMap(_mapCtrl.CurrentBonusMap());
+            }
+
+
+            if (Input.GetKeyDown(KeyCode.F9))
+            {
+                _bowPurchasedSkill.unlocked = !_bowPurchasedSkill.unlocked;
+
+            }
+
+            if (Input.GetKeyDown(KeyCode.F10))
+            {
+                _bowBoostSkill.unlocked = !_bowBoostSkill.unlocked;
+            }
+        }
+
+        IEnumerator SwitchStage2()
+        {
+            if (_bonusStage2Skill.unlocked && _bonusGaps2Skill.unlocked)
+            {
+                _bonusGaps2Skill.unlocked = false;
+                yield return new WaitForSeconds(0.5f);
+                _bonusStage2Skill.unlocked = false;
+            }
+            else if (!_bonusStage2Skill.unlocked && !_bonusGaps2Skill.unlocked)
+            {
+                _bonusStage2Skill.unlocked = true;
+                yield return new WaitForSeconds(0.5f);
+                _bonusGaps2Skill.unlocked = true;
             }
         }
     }
