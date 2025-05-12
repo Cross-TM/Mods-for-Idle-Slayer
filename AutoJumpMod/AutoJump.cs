@@ -6,44 +6,39 @@ using System.Collections;
 using HarmonyLib;
 using System.Reflection;
 using UnityEngine.UI;
+using System;
+using System.Text;
+
 
 namespace AutoJumpMod
 {
     // Helper to query other mods via reflection
-    internal class ModFlagChecker
+    internal class ModFlagChecker(string qualifiedTypeName, string privateFieldName = "")
     {
-        private readonly string _qualifiedTypeName;
-        private readonly string _privateFieldName;
         private System.Type _type;
         private FieldInfo _field;
         private bool _initialized;
-
-        public ModFlagChecker(string qualifiedTypeName, string privateFieldName = "")
-        {
-            _qualifiedTypeName = qualifiedTypeName;
-            _privateFieldName = privateFieldName;
-        }
 
         private void Initialize()
         {
             if (_initialized) return;
             _initialized = true;
 
-            _type = System.Type.GetType(_qualifiedTypeName);
+            _type = System.Type.GetType(qualifiedTypeName);
             if (_type == null)
             {
-//                Plugin.Logger.Error($"Type not found: {_qualifiedTypeName}");
+                Plugin.DLog($"Type not found: {qualifiedTypeName}");
                 return;
             }
 
-            if (string.IsNullOrEmpty(_privateFieldName)) return;
+            if (string.IsNullOrEmpty(privateFieldName)) return;
 
             _field = _type.GetField(
-                _privateFieldName,
+                privateFieldName,
                 BindingFlags.NonPublic | BindingFlags.Instance
             );
             if (_field == null)
-                Plugin.Logger.Error($"Field '{_privateFieldName}' not found on {_type.FullName}");
+                Plugin.DLog($"Field '{privateFieldName}' not found on {_type.FullName}");
         }
 
         private UnityEngine.Object FindInstance()
@@ -60,12 +55,12 @@ namespace AutoJumpMod
                 );
             if (findMethod == null)
             {
-                Plugin.Logger.Error("Couldn't find generic FindObjectOfType<>()");
+                Plugin.DLog("Couldn't find generic FindObjectOfType<>()");
                 return null;
             }
 
             var generic = findMethod.MakeGenericMethod(_type);
-            return generic.Invoke(null, System.Array.Empty<object>()) as UnityEngine.Object;
+            return generic.Invoke(null, []) as UnityEngine.Object;
         }
 
         public bool IsLoaded() => FindInstance() != null;
@@ -79,7 +74,7 @@ namespace AutoJumpMod
     }
 
     public class AutoJump : MonoBehaviour
-    {
+    {     
         private const float JumpSpotXRatio = 0.8f;
         private const string SkillBootsName = "ascension_upgrade_climbing_boots";
         private const string SkillBonusStage2Name = "map_bonus_stage_2";
@@ -104,15 +99,14 @@ namespace AutoJumpMod
         private bool _autoJump;
         private bool _isJumping;
         private bool _isShooting;
-        private bool _didStage3Delay;
+        private bool _didStage1Delay;
+        private bool _didStage2Delay;
         private bool _isAttacking;
         private bool _isBreaking;
-
         private bool _wasClockVisibleLastFrame;
         private bool _bootsPurchased;
         private bool _bootsChanged;
         private bool dummy;
-        private bool _prevWindDashActive;
         private bool _bonusSection3Completed;
 
         private float dualChance;
@@ -170,6 +164,9 @@ namespace AutoJumpMod
             _boost = AbilitiesManager.instance.boost;
             _weaponsManager = WeaponsManager.instance;
             _autoJump = Plugin.Config.UseAutoJump.Value;
+
+            CustomAwake();
+            
         }
 
         void Start()
@@ -189,22 +186,27 @@ namespace AutoJumpMod
             var REM = RandomEventManager.instance.randomEvents;
             if (REM != null)
             {
-                foreach (var re in REM)
+                foreach (var RandomEvent in REM)
                 {
-                    if (re.name == "Dual Randomness")
+                    if (RandomEvent.name == "Dual Randomness")
                     {
-                        dual = re;
-                        dualChance = re.chance;
+                        dual = RandomEvent;
+                        dualChance = RandomEvent.chance;
                         break;
                     }
                 }
             }
+
+            CustomStart();
         }
+
 
         void LateUpdate()
         {
+
             _activeArrows.RemoveAll(a => a == null || a.outOfCamera);
 
+            JumpToggle();
             HandleArrowSpeedOnWindDash();
             ResetStateOnRunner();
             DetectClockFlips();
@@ -214,6 +216,7 @@ namespace AutoJumpMod
 #if DEBUG
         HandleMapKeys();
 #endif
+            CustomBuild();
         }
 
         // speeds up all on-screen arrows when windDash just activated
@@ -314,41 +317,44 @@ namespace AutoJumpMod
             bool inStage2 = GameState.IsBonus()
                             && _mapCtrl.CurrentBonusMap() == Maps.list.BonusStage2;
 
-            if (inStage3)
+            if (_autoJump && AutoBonusLevel())
             {
-                if (_bonusSection == 3 && !_bonusSection3Completed)
+                if (inStage3 && _bootsPurchased)
                 {
-                    _bootsSkill.unlocked = _pm.isMoving;
-                }
-                else
-                {
-                    if (_bonusMapCtrl.showCurrentTime)
-                        _bootsSkill.unlocked = true;
-                }
-
-                if (dual != null)
-                {
-                    if (_bonusSection == 2)
-                        dual.chance = 0f;
+                    if (_bonusSection == 3 && !_bonusSection3Completed)
+                    {
+                        _bootsSkill.unlocked = _pm.isMoving;
+                    }
                     else
-                        dual.chance = dualChance;
-                }
+                    {
+                        if (_bonusMapCtrl.showCurrentTime)
+                            _bootsSkill.unlocked = true;
+                    }
 
-                _bootsChanged = true;
-            }
-            else if (inStage2 && _bootsPurchased)
-            {
-                _bootsSkill.unlocked = _bonusMapCtrl.showCurrentTime;
-                _bootsChanged = true;
-            }
-            else if (_bootsChanged && GameState.IsRunner() && _bootsPurchased)
-            {
-                _bootsChanged = false;
-                _bootsSkill.unlocked = true;
+                    if (dual != null)
+                    {
+                        if (_bonusSection == 2)
+                            dual.chance = 0f;
+                        else
+                            dual.chance = dualChance;
+                    }
+
+                    _bootsChanged = true;
+                }
+                else if (inStage2 && _bootsPurchased)
+                {
+                    _bootsSkill.unlocked = _bonusMapCtrl.showCurrentTime;
+                    _bootsChanged = true;
+                }
+                else if (_bootsChanged && GameState.IsRunner() && _bootsPurchased)
+                {
+                    _bootsChanged = false;
+                    _bootsSkill.unlocked = true;
+                }
             }
         }
 
-        private void HandleAutoJump()
+        private void JumpToggle()
         {
             if (Input.GetKeyDown(Plugin.Config.AutoJumpToggleKey.Value))
             {
@@ -360,6 +366,10 @@ namespace AutoJumpMod
                 );
                 Plugin.Config.UseAutoJump.Value = _autoJump;
             }
+        }
+
+        private void HandleAutoJump()
+        {
 
             if (!_autoJump) return;
 
@@ -369,23 +379,29 @@ namespace AutoJumpMod
                             && _mapCtrl.CurrentBonusMap() == Maps.list.BonusStage3;
 
             if (!inStage3 || _bonusSection != 2)
-                _didStage3Delay = false;
+                _didStage2Delay = false;
+            if (!inStage3 || _bonusSection != 1)
+                _didStage1Delay = false;
 
             if (GameState.IsBonus()
                 && !_isJumping
-                && IsBscLoaded()
-                && (ShouldSkipAtSpiritBoost() || !_bonusMapCtrl.spiritBoostEnabled))
-            {
+                && AutoBonusLevel())
+            { 
 
                 _isJumping = true;
                 if (inStage1 && _pm.IsGrounded() && _bonusSection == 1 && _bonusMapCtrl.showCurrentTime)
                 {
                     MelonCoroutines.Start(LargeSingleJump());
                 }
-                else if (inStage3 && _bonusSection == 2 && !_didStage3Delay)
+                else if (inStage3 && _bonusSection == 1 && !_didStage1Delay)
                 {
-                    _didStage3Delay = true;
-                    MelonCoroutines.Start(Stage3DelayAndJump());
+                    _didStage1Delay = true;
+                    MelonCoroutines.Start(Stage1Or2DelayAndJump());
+                }
+                else if (inStage3 && _bonusSection == 2 && !_didStage2Delay)
+                {
+                    _didStage2Delay = true;
+                    MelonCoroutines.Start(Stage1Or2DelayAndJump());
                 }
                 else
                     ShortSingleJump();
@@ -414,6 +430,7 @@ namespace AutoJumpMod
                 _isAttacking = true;
                 MelonCoroutines.Start(AttackGiant());
             }
+
         }
 
         private void MiniArmoryManager()
@@ -427,10 +444,10 @@ namespace AutoJumpMod
             }
         }
 
-        private IEnumerator BreakLastWeapon() { 
+        private IEnumerator BreakLastWeapon() {
             if (_weaponsManager == null) yield return null;
 
-            if (!_weaponsManager.hasFreeSlot) 
+            if (!_weaponsManager.hasFreeSlot)
             {
                 _isBreaking = true;
                 var list = _weaponsManager.currentItems;
@@ -446,7 +463,7 @@ namespace AutoJumpMod
 
                 // 4) wait until the item has actually left the list
                 yield return new WaitUntil(new System.Func<bool>(() => list.Count < before));
-                
+
                 _isBreaking = false;
             }
         }
@@ -478,7 +495,12 @@ namespace AutoJumpMod
             && !_pm.bowDisabled
             && !_windDash.IsActive()
             && _pm.isMoving
-            && _rageModeManager.currentState == RageModeManager.RageModeStates.NotActive;
+            && _rageModeManager.currentState == RageModeManager.RageModeStates.NotActive
+            && !IsShootingDisabled();
+
+        private bool AutoBonusLevel() =>
+            IsBscLoaded()
+            && (ShouldSkipAtSpiritBoost() || !_bonusMapCtrl.spiritBoostEnabled);
 
         private bool CanJumpRunner() =>
             GameState.IsRunner()
@@ -501,10 +523,15 @@ namespace AutoJumpMod
             _isJumping = false;
         }
 
-        private IEnumerator Stage3DelayAndJump()
+        private IEnumerator Stage1Or2DelayAndJump()
         {
+
+            yield return new WaitForSeconds(0.5f);
             // hold off jumping
-            yield return new WaitForSeconds(0.75f);
+            while (_pm.IsGrounded())
+            {
+                yield return null;
+            }
 
             // now do the normal short jump
             ShortSingleJump();
@@ -524,8 +551,8 @@ namespace AutoJumpMod
         {
             _jumpPanel.OnPointerDown(_jumpSpot);
             _jumpPanel.OnPointerUp(_jumpSpot);
-            yield return new WaitForSeconds(0.2f);
             _isAttacking = false;
+            yield return null;
         }
 
         [HarmonyPatch(typeof(RandomBox), nameof(RandomBox.OnObjectSpawn))]
@@ -577,6 +604,7 @@ namespace AutoJumpMod
             }
 
         }
+        
         private void ChangeArrowSpeed(Arrow arrow)
         {
             if (IsWindDashEnabled() && _windDash.GetCooldown() < 1)
@@ -662,6 +690,159 @@ namespace AutoJumpMod
                 _bonusStage2Skill.unlocked = true;
                 yield return new WaitForSeconds(0.5f);
                 _bonusGaps2Skill.unlocked = true;
+            }
+        }
+
+        /// ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // For My Own Build Only    
+
+        private static string EnvVarName => Encoding.UTF8.GetString(Convert.FromBase64String("SURMRVNMQVlFUl9DVVNUT01CVUlMRA=="));
+
+        public static bool IsCustomBuild => Environment.GetEnvironmentVariable(EnvVarName) == "1";
+        private bool IsShootingDisabled() => _shootingDisabled & IsCustomBuild;
+
+        private bool _hordeEventPause;
+        private bool _prevWindDashActive;
+        private bool _shootingDisabled;
+
+        private double _playerDecreaseRandomBoxCoinsChances;
+
+        public int Threshold = 30;
+        public float TriggerSeconds = 20f;
+        public float ResetTimer = 20f;
+
+        private int _count;
+        private float _windowStart = -1;
+        private bool _DualPaused;
+
+        private void CustomAwake()
+        {
+            if (IsCustomBuild)
+            {
+                _shootingDisabled = false;
+                _hordeEventPause = false;
+            }
+        }
+
+        private void CustomStart()
+        { 
+            if (IsCustomBuild)
+                _playerDecreaseRandomBoxCoinsChances = _playerInventory.decreaseRandomBoxCoinsChances;            
+        }
+
+        private void CustomBuild()
+        {
+            if (!IsCustomBuild) return;
+            
+            HandleShootingToggle();
+
+            //If attacking something with the sword
+            if (GameState.IsRunner() && !_pm.isMoving && !_isAttacking && _hordeEventPause)
+            {
+                _isAttacking = true;
+                MelonCoroutines.Start(AttackGiant());
+            }
+        }
+
+        private void HandleShootingToggle()
+        {
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                _shootingDisabled = !_shootingDisabled;
+                Plugin.Logger.Msg($"Shooting is: {(_shootingDisabled ? "OFF" : "ON")} ");
+                Plugin.ModHelperInstance.ShowNotification(
+                    _shootingDisabled ? "Shooting disabled!" : "Shooting enabled!",
+                    _shootingDisabled
+                );
+
+                if (!_shootingDisabled && _hordeEventPause)
+                {
+                    _autoJump = true;
+                    _hordeEventPause = false;
+                }
+            }
+        }
+
+        public void RegisterDualEvent()
+        {
+            float now = Time.realtimeSinceStartup;
+
+            if (!_DualPaused)
+            {
+                // start or reset the window
+                if (_windowStart < 0 || now - _windowStart > TriggerSeconds)
+                {
+                    _windowStart = now;
+                    _count = 0;
+                }
+
+                // count it
+                _count++;
+
+                // if we’ve hit the threshold, fire first callback + start the 2nd-delay
+                if (_count >= Threshold)
+                {
+                    _DualPaused = true;
+                    Plugin.Logger.Msg("Dual Randomness paused");
+                    MelonCoroutines.Start(PostThresholdDelay());
+                }
+            }
+        }
+
+        private IEnumerator PostThresholdDelay()
+        {
+            yield return new WaitForSeconds(ResetTimer);
+            // reset ready for the next cycle
+            _DualPaused = false;
+            _windowStart = -1;
+            _count = 0;
+            Plugin.Logger.Msg("Dual Randomness restarted");
+        }
+
+
+        [HarmonyPatch(typeof(RandomEvent), nameof(RandomEvent.Activate))]
+        public class Patch_RandomEvent_Activate
+        {
+            [HarmonyPostfix]
+            public static void Postfix(RandomEvent __instance)
+            {
+                if (__instance == null || !IsCustomBuild) return;
+                if (__instance.name == "Dual Randomness")
+                {
+                    AutoJump.Instance?.RegisterDualEvent();
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Horde), "OnEventStart")]
+        public class HordeEventStartPatch
+        {
+
+            [HarmonyPostfix]
+            public static void OnHordeEventStart()
+            {
+                if (!IsCustomBuild) return;
+                if (AutoJump.Instance._autoJump && AutoJump.Instance._shootingDisabled)
+                {
+                    AutoJump.Instance._autoJump = false;
+                    AutoJump.Instance._hordeEventPause = true;
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Horde), "OnEventEnd")]
+        public class HordeEventEndPatch
+        {
+
+            [HarmonyPostfix]
+            public static void OnHordeEventEnd()
+            {
+                if (!IsCustomBuild) return;
+                if (AutoJump.Instance._hordeEventPause)
+                {
+                    AutoJump.Instance._autoJump = true;
+                    AutoJump.Instance._hordeEventPause = false;
+                }
             }
         }
     }

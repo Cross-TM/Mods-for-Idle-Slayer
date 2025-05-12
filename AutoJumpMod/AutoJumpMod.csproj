@@ -9,6 +9,8 @@
 		<PlatformTarget>x64</PlatformTarget>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'" />
+
 	<ItemGroup>
 		<PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
 		<PackageReference Include="Lib.Harmony" Version="2.3.6" />
