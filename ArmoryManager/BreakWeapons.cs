@@ -21,7 +21,7 @@ public class BreakWeapons : MonoBehaviour
         _weaponsManager = WeaponsManager.instance;
         _playerInventory = PlayerInventory.instance;
         _dropsManager = DropsManager.instance;
-        _keep = (int)_weaponsManager.GetMaxSlots();
+        _keep = Plugin.Config.CurrentNumberOfWeapons.Value;
 
     }
 
@@ -32,19 +32,33 @@ public class BreakWeapons : MonoBehaviour
 
     public void LateUpdate()
     {
+        double before = _keep;
+        
         if (Input.GetKeyUp(KeyCode.F7))
         {
-            _keep = (int)_weaponsManager.GetMaxSlots();
-            Plugin.Logger.Msg($"Weapons to keep: {_keep}");
+            if (_keep + 5 > (int)_weaponsManager.GetMaxSlots())
+                _keep = (int)_weaponsManager.GetMaxSlots();
+            else
+                _keep += 5;
+
+            if (_keep != before)
+                Plugin.Logger.Msg($"Weapons to keep: {_keep}");
         }
+
         if (Input.GetKeyUp(KeyCode.F8))
         {
-            if (_keep - 5 < Plugin.Config.NumberOfWeapons.Value)
-                _keep = Plugin.Config.NumberOfWeapons.Value;
+            if (_keep - 5 < Plugin.Config.LowerBoundOfWeapons.Value)
+                _keep = Plugin.Config.LowerBoundOfWeapons.Value;
             else
                 _keep -= 5;
 
-            Plugin.Logger.Msg($"Weapons to keep: {_keep}");
+            if (_keep != before)
+                Plugin.Logger.Msg($"Weapons to keep: {_keep}");
+        }
+
+        if (before != _keep)
+        {
+            Plugin.Config.CurrentNumberOfWeapons.Value = _keep;
         }
 
         if (!_isBreaking && _weaponsManager.currentItems.Count > _keep && GameState.IsRunner())
