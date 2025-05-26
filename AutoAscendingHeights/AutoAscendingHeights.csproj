@@ -51,4 +51,8 @@
       <None Include="AutoAscendingHeights.csproj.user" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\AutoRageMode\AutoRageMode.csproj" />
+    </ItemGroup>
+
 </Project>
