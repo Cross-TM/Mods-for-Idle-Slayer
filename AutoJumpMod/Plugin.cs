@@ -26,6 +26,9 @@ public class Plugin : MelonMod
         Config = new(MyPluginInfo.PLUGIN_GUID);
         Logger.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
+
+        var harmony = new HarmonyLib.Harmony(MyPluginInfo.PLUGIN_NAME);
+        harmony.PatchAll();
     }
     private static void SetModHelperInstance(ModHelper instance) => ModHelperInstance = instance;
 
@@ -33,5 +36,6 @@ public class Plugin : MelonMod
     {
         if (sceneName != "Game") return;
         ModUtils.RegisterComponent<AutoJump>();
+ //       ModUtils.RegisterComponent<CheatTriggerRoll>();
     }
 }
