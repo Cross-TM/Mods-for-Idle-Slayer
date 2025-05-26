@@ -1,7 +1,7 @@
 using UnityEngine;
-using System.Reflection;
-using MelonLoader;
 using Il2Cpp;
+using IdleSlayerMods.Common.Extensions;
+using HarmonyLib;
 
 namespace MinionManaging
 {
@@ -9,57 +9,40 @@ namespace MinionManaging
     {
         public static MinionSender Instance { get; private set; }
         public static AscensionManager _ascensionManager => AscensionManager.instance;
-        private bool _minionSenderEnabled;
-        private bool IsRunning = true;
-        private bool DebugMode;
-
-        public bool MinionSenderEnabled
-        {
-            get { return _minionSenderEnabled; }
-            private set { _minionSenderEnabled = value; }
-        }
 
         private void Awake()
         {
-            #if DEBUG
-                DebugMode = true;
-            #endif
-
             Instance = this;
-            MinionSenderEnabled = true;
-
-            if (Debug.isDebugBuild)
-                Plugin.Logger.Msg("MinionSender Awake() called");
         }
 
-        private void Start()
+
+        [HarmonyPatch(typeof(Minion), "CanBeClaimed")]
+        public class MinionCanBeClaimed
         {
-            _ascensionManager.OpenMinionsPanel();
-        }
-        private void LateUpdate()
-        {
-            if (!GameState.IsRunner())
+            [HarmonyPostfix]
+            public static void OnMinionCanBeClaimedCheck(Minion __instance, bool __result)
             {
-                IsRunning = false;
-            }
-            else if (GameState.IsRunner() && !IsRunning)
-            {
-                IsRunning = true;
-                _ascensionManager.OpenMinionsPanel();
+                if (__result)
+                {
+                    __instance.ClaimQuest();
+                }
             }
         }
 
-        public void SendMinions()
+        [HarmonyPatch(typeof(Minion), "IsStandingBy")]
+        public class MinionIsStandingBy
         {
-            Plugin.Logger.Msg("Sending Minions to work");
-            MinionManager.instance.SendAll();
+            [HarmonyPostfix]
+            public static void OnMinionISStandingBuCheck(Minion __instance, bool __result)
+            {
+                if (__result)
+                {
+                    if (__instance.GetCost() < SlayerPoints.pre)
+                    {
+                        __instance.GiveQuest();
+                    }
+                }
+            }
         }
-
-        public void ClaimMinions()
-        {
-            Plugin.Logger.Msg("Claiming Minions");
-            MinionManager.instance.ClaimAll();
-        }
-
     }
 }

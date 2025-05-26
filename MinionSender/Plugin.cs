@@ -17,8 +17,6 @@ public class Plugin : MelonMod
 
     public override void OnInitializeMelon()
     {
-        ClassInjector.RegisterTypeInIl2Cpp<MinionSender>();
-
         LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
 
