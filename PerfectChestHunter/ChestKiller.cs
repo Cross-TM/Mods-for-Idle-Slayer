@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using Il2Cpp;
 using System.Collections;
 using MelonLoader;
+using static Il2Cpp.CasinoManager;
 
 namespace PerfectChestHunter;
 
@@ -18,6 +19,14 @@ public class ChestKiller : MonoBehaviour
     private bool DebugMode;
     private bool MultiplyArmoryChests;
 
+    Achievement killMimic;
+    Achievement perfectChestHunt;
+    Achievement fivePerfectChestHunt;
+
+    private bool killMimicCompleted;
+    private bool perfectChestHuntCompleted;
+    private bool fivePerfectChestHuntCompleted;
+
     private void Awake()
     {
         Instance = this;    
@@ -25,6 +34,31 @@ public class ChestKiller : MonoBehaviour
         _playerInventory = PlayerInventory.instance;
 
         MultiplyArmoryChests = Plugin.Settings.MultiplyArmoryChests.Value;
+        InitialiseAchievements();
+    }
+
+    private void InitialiseAchievements() 
+    {
+
+        foreach (Achievement achievement in _playerInventory.achievements)
+        {
+            if (achievement.name == "achievement_that_was_fun")
+            {
+                killMimic = achievement;
+                killMimicCompleted = killMimic.unlocked;
+            }
+            else if (achievement.name == "achievement_perfect_chest_hunt")
+            {
+                perfectChestHunt = achievement;
+                perfectChestHuntCompleted = perfectChestHunt.unlocked;
+            }
+            else if (achievement.name == "achievement_locksmith")
+            {
+                fivePerfectChestHunt = achievement;
+                fivePerfectChestHuntCompleted = fivePerfectChestHunt.unlocked;
+            }
+        }
+
     }
 
     private void LateUpdate()
@@ -39,7 +73,14 @@ public class ChestKiller : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.U))
         {
-            _chestHuntManager.Close();
+            killMimic.unlocked = false;
+            killMimicCompleted = false;
+
+            _playerInventory.perfectChestHunts = 0;
+            perfectChestHunt.unlocked = false;
+            fivePerfectChestHunt.unlocked = false;
+            perfectChestHuntCompleted = false;
+            fivePerfectChestHuntCompleted = false;
         }
 #endif
 
@@ -53,6 +94,7 @@ public class ChestKiller : MonoBehaviour
             _chestOpenerCompleted = false;
             _perfectChestOpenerCompleted = false;
             _chestHuntClosed = false;
+            killMimicCompleted = killMimic.unlocked;
         }
         else
         {
@@ -64,7 +106,13 @@ public class ChestKiller : MonoBehaviour
                 Plugin.Logger.Msg("Chest Event Started!");
                 LowerStats();
 
-                MelonCoroutines.Start(OpenChests());
+                if (!killMimicCompleted)
+                {
+                    MelonCoroutines.Start(OpenMimicChest());
+                    _perfectChestOpenerCompleted = true;
+                }
+                else 
+                    MelonCoroutines.Start(OpenChests());
 
                 _chestOpenerCompleted = true;
             }
@@ -89,11 +137,9 @@ public class ChestKiller : MonoBehaviour
                 GameObject cb = _chestHuntManager.closeButton;
                 if (cb != null)
                 {
-                    Image image = cb.GetComponent<Image>();
-                    if (image != null && image.isActiveAndEnabled)
+                    AnimatedButton animatedButton = cb.GetComponent<AnimatedButton>();
+                    if (animatedButton != null && animatedButton.isActiveAndEnabled)
                     {
-                        if (DebugMode)
-                            Plugin.Logger.Msg("Close button's Image component is active and enabled. Closing chest event.");
                         _chestHuntManager.Close();
                         _chestHuntClosed = true;
                     }
@@ -120,11 +166,43 @@ public class ChestKiller : MonoBehaviour
 
     private void LowerStats()
     {
-        _playerInventory.perfectChestHunts = (int)(_playerInventory.chestHunts * 0.006) - 1;
-        _playerInventory.mimicsSlayed = (int)(_playerInventory.chestHunts * 2.5);
+        fivePerfectChestHuntCompleted = fivePerfectChestHunt.unlocked;
+
+        if (fivePerfectChestHuntCompleted)
+        {
+            _playerInventory.perfectChestHunts = (int)(_playerInventory.chestHunts * 0.006) - 1;
+            if (_playerInventory.perfectChestHunts < 4)
+            {
+                _playerInventory.perfectChestHunts = 4;
+            }
+            _playerInventory.mimicsSlayed = (int)(_playerInventory.chestHunts * 2.5);
+        }
     }
 
     private float defaultChestOpeningDelay = 0.25f; // Delay between opening chests
+
+    private IEnumerator OpenMimicChest() 
+    {
+        int i = 0;
+
+        foreach (var chest in _chestHuntManager.chests)
+        {
+            if (i >= 3) // Limit to opening only 3 Mimic chests
+            {
+                break;
+            }
+            var chestObj = chest.chestObject;
+            if (!chestObj) continue;
+            if (chest.type == ChestType.Mimic)
+            {
+                if (chest.opened) continue;
+                if (DebugMode)
+                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+                yield return OpenChest(chestObj, defaultChestOpeningDelay);
+                i++;
+            }
+        }
+    }
 
     private IEnumerator OpenChest(ChestObject chestObj, float chestOpeningDelay)
     {
@@ -278,6 +356,14 @@ public class ChestKiller : MonoBehaviour
             if (DebugMode)
                 Plugin.Logger.Msg("Opening perfect chest...");
             perfectChestComponent?.Open(true);
+        }
+    }
+
+    private void LogAllAchievements()
+    {
+        foreach (Achievement achievement in _playerInventory.achievements)
+        {
+            Plugin.Logger.Msg($"Achievement: {achievement.localizedName}, Description: {achievement.GetDescription()}, actualName :{achievement.name}");
         }
     }
 }
