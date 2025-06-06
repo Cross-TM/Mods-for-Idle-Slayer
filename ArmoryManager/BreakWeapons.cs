@@ -21,13 +21,13 @@ public class BreakWeapons : MonoBehaviour
         _weaponsManager = WeaponsManager.instance;
         _playerInventory = PlayerInventory.instance;
         _dropsManager = DropsManager.instance;
-        _keep = Plugin.Config.CurrentNumberOfWeapons.Value;
-
+        _keep = Plugin.Config.CurrentNumberOfWeaponsToKeep.Value;
     }
 
     public void Start()
     {
-
+        if (Plugin.Config.LowerBoundOfWeapons.Value > _weaponsManager.GetMaxSlots())
+            Plugin.Config.LowerBoundOfWeapons.Value = 10;
     }
 
     public void LateUpdate()
@@ -58,7 +58,7 @@ public class BreakWeapons : MonoBehaviour
 
         if (before != _keep)
         {
-            Plugin.Config.CurrentNumberOfWeapons.Value = _keep;
+            Plugin.Config.CurrentNumberOfWeaponsToKeep.Value = _keep;
         }
 
         if (!_isBreaking && _weaponsManager.currentItems.Count > _keep && GameState.IsRunner())
@@ -72,7 +72,24 @@ public class BreakWeapons : MonoBehaviour
         _isBreaking = true;
         var list = _weaponsManager.currentItems;
 
-        // while there are more than we want…
+        for (int i = list.Count - 1 ; i >= 0; i--)
+        {
+            if (list.Count == _keep)
+                break;
+
+            int before = list.Count;
+            var toBreak = list[i];
+
+            if (toBreak.IsEquipped()) continue;
+            
+            _weaponsManager.BreakPopup(toBreak);
+
+            yield return AutoConfirmBreak();
+
+            // wait until the item has actually left the list
+            yield return new WaitUntil(new System.Func<bool>(() => list.Count < before));
+        }
+/*
         while (list.Count > _keep)
         {
             int before = list.Count;
@@ -87,7 +104,7 @@ public class BreakWeapons : MonoBehaviour
             // 4) wait until the item has actually left the list
             yield return new WaitUntil(new System.Func<bool>(() => list.Count < before));
         }
-
+*/
         _isBreaking = false;
     }
     

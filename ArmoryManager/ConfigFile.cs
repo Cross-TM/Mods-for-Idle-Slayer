@@ -6,13 +6,13 @@ namespace ArmoryManager;
 internal sealed class ConfigFile(string configName) : BaseConfig(configName)
 {
     internal MelonPreferences_Entry<int> LowerBoundOfWeapons;
-    internal MelonPreferences_Entry<int> CurrentNumberOfWeapons;
+    internal MelonPreferences_Entry<int> CurrentNumberOfWeaponsToKeep;
 
     protected override void SetBindings()
     {
-        LowerBoundOfWeapons = Bind("ArmoryManager", 15,
+        LowerBoundOfWeapons = Bind("LowerBoundOfWeapons", 15,
         "Lowest number of weapons to keep in Armory");
-        CurrentNumberOfWeapons = Bind("ArmoryManager", 15,
+        CurrentNumberOfWeaponsToKeep = Bind("CurrentNumberOfWeaponsToKeep", 15,
             "Current number of weapons in Armory");
     }
 }
