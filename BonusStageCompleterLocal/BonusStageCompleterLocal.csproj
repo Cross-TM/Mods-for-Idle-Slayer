@@ -16,32 +16,32 @@
 
 	<ItemGroup>
 		<Reference Include="IdleSlayerMods.Common">
-			<HintPath>..\Libraries\IdleSlayerMods.Common.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\Mods\IdleSlayerMods.Common.dll</HintPath>
 		</Reference>
 		<Reference Include="Assembly-CSharp">
-			<HintPath>..\Libraries\Assembly-CSharp.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="Il2Cpp">
-			<HintPath>..\Libraries\Il2Cpp.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Dependencies\SupportModules\Il2Cpp.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppInterop.Runtime">
-			<HintPath>..\Libraries\Il2CppInterop.Runtime.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2Cppmscorlib">
-			<HintPath>..\Libraries\Il2Cppmscorlib.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>..\Libraries\UnityEngine.CoreModule.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.InputLegacyModule">
-			<HintPath>..\Libraries\UnityEngine.InputLegacyModule.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UI">
-			<HintPath>..\Libraries\UnityEngine.UI.dll</HintPath>
+			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
