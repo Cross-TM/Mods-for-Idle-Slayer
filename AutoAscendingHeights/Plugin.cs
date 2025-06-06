@@ -28,6 +28,6 @@ public class Plugin : MelonMod
     {
 
         if (sceneName != "Game") return;
-        ModUtils.RegisterComponent<AutoAscend>();
+        ModUtils.RegisterComponent<AutoAscendIngHeights>();
     }
 }

@@ -9,16 +9,15 @@ using Il2Cpp;
 
 namespace AutoAscendingHeights;
 
-public class AutoAscend : MonoBehaviour
+public class AutoAscendIngHeights : MonoBehaviour
 {
-    public static AutoAscend Instance { get; private set; }
+    public static AutoAscendIngHeights Instance { get; private set; }
 
     // constants
     const float LeftPadX = 0.05f;
     const float RightPadX = 0.95f;
     const float PadY = 0.5f;
     const float HoldTime = 2f;
-    float StartingBoost;
 
     // singletons
     AscendingHeightsController _ascendingCtrl;
@@ -40,8 +39,10 @@ public class AutoAscend : MonoBehaviour
     // state
     bool _autoAscend = true;
     bool _holdingRight;
-    bool _longAscendingHeights;
-    bool _ascendingHeightsQuestActive;
+
+    float AscendingStartingHeight = -1;
+    float MtOttoStartingHeight = -1;
+
 
     void Awake()
     {
@@ -59,56 +60,13 @@ public class AutoAscend : MonoBehaviour
         _leftPad = MakePad(LeftPadX);
         _rightPad = MakePad(RightPadX);
 
-        StartingBoost = _ascendingCtrl.startingBoost;
-
-        var AllQuests = _pi.allQuests;
-
-        foreach (Quest quest in AllQuests) { 
-        
-            if (quest.questType == QuestType.KillEnemies && (quest.enemyToKill == _frozenCoins || quest.enemyToKill == _frozenSouls))
-            {
-                AscendingQuests.AddItem(quest);
-            }
-        }
-
-        var AllUpgrades = _pi.upgrades;
-
-        foreach (Upgrade upgrade in AllUpgrades)
-        {
-            if (upgrade.name.Contains("quest") && upgrade.bought == false)
-            {
-                UnlockNewQuests.AddItem(upgrade);
-            }
-        }
+        if (AscendingStartingHeight == -1) AscendingStartingHeight = Maps.list.AscendingHeightsStage1.finishAtDistance;
+        if (MtOttoStartingHeight == -1) MtOttoStartingHeight = Maps.list.MtOttoAscendingHeights.finishAtDistance;
     }
 
-    void CheckQuests() {
-        bool questActive = false;
-
-        foreach (Quest quest in AscendingQuests)
-        {
-            if (quest == null) continue;
-
-            if (quest.CanBeCompleted())
-            {
-                questActive = true;
-                break;
-            }
-        }
-
-        _longAscendingHeights = questActive;
-    }
 
     void LateUpdate()
     {
-        //        CheckQuests();
-//        _longAscendingHeights = true;
-
-/*        if (_longAscendingHeights && _autoAscend)
-            _ascendingCtrl.startingBoost = 600f;
-        else
-            _ascendingCtrl.startingBoost = StartingBoost;
-*/
 
         if (Input.GetKeyDown(Plugin.Config.AutoAscendingHeightsToggleKey.Value))
             ToggleAutoAscend();
@@ -122,7 +80,8 @@ public class AutoAscend : MonoBehaviour
 
         if (_autoAscend)
         {
-            _ascendingCtrl.currentAscendingHeightsMap.finishAtDistance = FinishHeight;
+            Maps.list.AscendingHeightsStage1.finishAtDistance = FinishHeight;
+            Maps.list.MtOttoAscendingHeights.finishAtDistance = FinishHeight;
 
             if (_ascendingCtrl.FinishHeightReached() && _pm.IsGrounded())
             {
@@ -133,13 +92,15 @@ public class AutoAscend : MonoBehaviour
                 }
             }
         }
+        else
+        {
+            _ascendingCtrl.currentAscendingHeightsMap.finishAtDistance = AscendingStartingHeight;
+            Maps.list.MtOttoAscendingHeights.finishAtDistance = MtOttoStartingHeight;
+        }
     }
 
     float FinishHeight =>
-        _autoAscend ? (_longAscendingHeights ? 
-        (_higherAltitudes.unlocked ? 2000f : 3000f) : 
-        (_higherAltitudes.unlocked ? -975f : 25f)) : 1000f;
-
+        (_higherAltitudes.unlocked ? -975f : 25f);
 
     void ToggleAutoAscend()
     {
@@ -187,7 +148,7 @@ public class AutoAscend : MonoBehaviour
         [HarmonyPostfix]
         static void Postfix(BonusStartSlider __instance)
         {
-            AutoAscend.Instance.SkipSlider(__instance);
+            AutoAscendIngHeights.Instance.SkipSlider(__instance);
         }
     }
 
