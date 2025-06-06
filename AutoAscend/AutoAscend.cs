@@ -16,20 +16,17 @@ namespace AutoAscendMod
         PlayerInventory _playerInventory;
         AscensionManager _ascensionManager;
 
-        GameObject _questGameObject;
         GameObject _powerGameObject;
         GameObject _upgradeGameObject;
 
-        Il2CppSystem.Collections.Generic.List<Quest> questsScrollList;
         Il2CppSystem.Collections.Generic.List<Power> powersScrollList;
         Il2CppSystem.Collections.Generic.List<Upgrade> upgradesScrollList;
 
         private bool purchaserRunning = false;
         private bool ascendReady = false;
-        private bool questsChecking = false;
 
         Power[] _allPowers;
-        Power Sword;        //  equipment_1
+/*        Power Sword;        //  equipment_1
         Power Shield;       //  equipment_2
         Power Armor;        //  equipment_3
         Power Helmet;       //  equipment_4
@@ -47,7 +44,7 @@ namespace AutoAscendMod
         Power Claw;         //  equipment_16
         Power Spear;        //  equipment_17
         Power Shuriken;     //  equipment_18
-
+*/
         public void Awake()
         {
             Instance = this;
@@ -57,7 +54,6 @@ namespace AutoAscendMod
 
             _allPowers = _playerInventory.powers;
 
-            _questGameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Quests/Quests");
             _powerGameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Powers/Powers");
             _upgradeGameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Upgrades/Upgrades");
             
@@ -65,15 +61,14 @@ namespace AutoAscendMod
 
         public void Start()
         {
-            InitialisePowers();
+  //          InitialisePowers();
 
-            RefreshScrollList("Quests");
             RefreshScrollList("Powers");
             RefreshScrollList("Upgrades");
 
         }
 
-        private void InitialisePowers()
+/*        private void InitialisePowers()
         {
             Sword = _allPowers[0];
             Shield = _allPowers[1];
@@ -94,15 +89,11 @@ namespace AutoAscendMod
             Spear = _allPowers[16];
             Shuriken = _allPowers[17];
         }
-
+*/
         private void RefreshScrollList(String panel)
         {
             switch (panel)
             {
-                case "Quests":
-                    _questGameObject.GetComponent<QuestsList>().RefreshList();
-                    questsScrollList = _questGameObject.GetComponent<QuestsList>().lastScrollListData;
-                    break;
                 case "Powers":
                     _powerGameObject.GetComponent<PowersList>().RefreshList();
                     powersScrollList = _powerGameObject.GetComponent<PowersList>().lastScrollListData;
@@ -116,7 +107,8 @@ namespace AutoAscendMod
 
         public void LateUpdate()
         {
-            if (!ascendReady)
+
+            if (!ascendReady && SlayerPoints.pre >= SlayerPoints.lifetime * 0.05 && SlayerPoints.pre > 25 && GameState.IsRunner())
             {
                 MelonCoroutines.Start(AscendAndPurchase());
             }
@@ -126,47 +118,58 @@ namespace AutoAscendMod
                 purchaserRunning = true;
                 MelonCoroutines.Start(RunPurchaser());
             }
-/*            if (!questsChecking)
-            {
-                questsChecking = true;
-                CheckQuests();
-            }
-*/
-//            KeyPresses();
         }
 
-/*        private void CheckQuests()
-        {
-            RefreshScrollList("Quests");
-
-            if (questsScrollList != null && questsScrollList.Count > 0)
-            {
-                foreach (Quest quest in questsScrollList)
-                {
-                    if (quest.CanBeClaimed())
-                    {
-                        quest.Claim();
-                        RefreshScrollList("Quests");
-                    }
-                }
-            }
-            questsChecking = false;
-        }
-*/
         private IEnumerator AscendAndPurchase()
         {
             ascendReady = true;
-            if (SlayerPoints.pre >= SlayerPoints.lifetime * 0.2 && SlayerPoints.pre > 25 &&
-                GameState.IsRunner())   // && RageModeManager.instance?.currentState == RageModeManager.RageModeStates.NotActive
+    
+            // 1) Only enter here if you’ve already hit 5% and >25…
+            //    (presumably you check that *before* you StartCoroutine this)
 
+            float firstTier = 300f;  // 5%
+            float secondTier = 60f;  // 20%
+            float thirdTier = 30f;  // 100%
+
+            float startTime = Time.time;
+            float waitTime = firstTier;
+
+            bool secondFired = false;
+            bool thirdFired = false;
+
+            // 2) Each frame, see if we crossed a higher tier.
+            //    If so, restart the timer at the new, shorter duration.
+            while (Time.time - startTime < waitTime)
             {
-                yield return new WaitForSeconds(60f);
-                _ascensionManager.Ascend();
-                for (int i = 0; i < 10; i++)
+                double pre = SlayerPoints.pre;
+                double lifetime = SlayerPoints.lifetime;
+
+                // check 100% first, so it can override the 20% tier
+                if (!thirdFired && pre >= lifetime)
                 {
-                    _ascensionManager.BuyAllAction();
+                    thirdFired = true;
+                    startTime = Time.time;
+                    waitTime = thirdTier;
                 }
+                else if (!secondFired && pre >= lifetime * 0.2f)
+                {
+                    secondFired = true;
+                    startTime = Time.time;
+                    waitTime = secondTier;
+                }
+
+                // wait one frame and loop
+                yield return null;
             }
+
+            // 3) when we get here, the “current” waitTime has elapsed
+            //    (it may be 300, or 60 from the moment we hit 20%, or 30 from the moment we hit 100%)
+            _ascensionManager.Ascend();
+            for (int i = 0; i < 10; i++)
+            {
+                _ascensionManager.BuyAllAction();
+            }
+                
             ascendReady = false;
         }
 
@@ -180,7 +183,10 @@ namespace AutoAscendMod
                 if (upgrade.GetCost() < _playerInventory.coins)
                 {
                     _shopManager.BuyUpgrade(upgrade);
-                }
+/*                    if (upgrade.name.EndsWith("_quests"))
+                        QuestProgressor.Instance?.Invoke(
+                            nameof(QuestProgressor.Instance.CheckQuestList), 2f);
+*/                }
                 else
                     break;
             }
@@ -252,7 +258,7 @@ namespace AutoAscendMod
 
         private void KeyPresses()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1))
+/*            if (Input.GetKeyDown(KeyCode.Alpha1))
             {
                 _shopManager.BuyPower(Sword);
             }
@@ -284,6 +290,6 @@ namespace AutoAscendMod
             {
                 _shopManager.BuyAllUpgrades();
             }
-        }
+*/        }
     }
 }
