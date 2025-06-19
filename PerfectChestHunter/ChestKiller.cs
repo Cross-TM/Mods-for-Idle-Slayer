@@ -103,7 +103,7 @@ public class ChestKiller : MonoBehaviour
                 if (!_chestHuntManager.IsVisible() || _chestHuntManager.chests.Count == 0)
                     return; // Exit early if chests are not ready
 
-                Plugin.Logger.Msg("Chest Event Started!");
+                //Plugin.Logger.Msg("Chest Event Started!");
                 LowerStats();
 
                 if (!killMimicCompleted)
