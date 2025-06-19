@@ -37,10 +37,21 @@ public class Enhanced_Quests : MonoBehaviour
     private bool questsChecking = false;
     public bool claimingQuest = false;
 
+    private object _rerollDailyHandle;
+    private object _rerollWeeklyHandle;
+    private object _checkDailyHandle;
+    private object _checkWeeklyHandle;
+
+    private bool _lastIsRunner;
     private bool DailiesChanged;
     private bool WeekliesChanged;
     private bool checkingDailies;
     private bool checkingWeeklies;
+    private bool chestKeySpawned;
+
+    private bool triggerDailies;
+    private bool triggerWeeklies;
+    private bool triggerRegen;
 
     private int dailiesRerolled;
     private int weekliesRerolled;
@@ -67,7 +78,9 @@ public class Enhanced_Quests : MonoBehaviour
     }
 
     public void Start()
-    { 
+    {
+        _lastIsRunner = GameState.IsRunner();
+
         CheckToRegenerate();
         CheckToRerollQuests();
 
@@ -81,14 +94,20 @@ public class Enhanced_Quests : MonoBehaviour
         }
     }
 
-    public void RefreshQuestList() 
-    { 
-        _gameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Quests/Quests");
-        _questsList = _gameObject.GetComponent<QuestsList>().lastScrollListData;    
-    }
     public void Update()
     {
-        if (!questsChecking)
+        bool isRunner = GameState.IsRunner();
+
+        if (_lastIsRunner && !isRunner)
+            StopAllQuestCoroutines();
+
+        if (isRunner && !_lastIsRunner)
+            chestKeySpawned = false;
+            CheckTriggerRegen();
+
+        _lastIsRunner = isRunner;
+
+        if (isRunner && !questsChecking)
         {
             questsChecking = true;
             CheckQuests();
@@ -96,11 +115,86 @@ public class Enhanced_Quests : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Alpha0)) 
         {
-            //            RerollDailyQuests();
-            //            RerollWeeklyQuests();
-            MelonCoroutines.Start(RerollQuestDelay("Daily"));
-            MelonCoroutines.Start(RerollQuestDelay("Weekly"));
+            Plugin.Logger.Msg("Refreshing Quest List");
+
+            StopAllQuestCoroutines();
+            DelayedReroll("Daily");
+            DelayedReroll("Weekly");
         }
+
+        if (Input.GetKeyDown(KeyCode.Alpha9)) 
+        {
+            _dailyQuestReroll.RewardForShowing();
+        }
+    }
+
+    public void SetTriggerRegen(String type)
+    {
+        if (type == "Daily")
+            triggerDailies = true;
+        else if (type == "Weekly")
+            triggerWeeklies = true;
+        else if (type == "Regen")
+            triggerRegen = true;
+    }
+
+    public void CheckTriggerRegen()
+    {
+        if (triggerDailies)
+        {
+            triggerDailies = false;
+            DelayedReroll("Daily");
+        }
+        
+        if (triggerWeeklies)
+        {
+            triggerWeeklies = false;
+            DelayedReroll("Weekly");
+        }
+
+        if (triggerRegen)
+        {
+            triggerRegen = false;
+            Invoke(nameof(Enhanced_Quests.CheckToRegenerate), 2f);
+        }
+    }
+
+    public void DelayedReroll(String type)
+    {
+        if (type == "Daily")
+        {
+            if (_rerollDailyHandle != null)
+                MelonCoroutines.Stop(_rerollDailyHandle);
+            _rerollDailyHandle = MelonCoroutines.Start(RerollQuestDelay("Daily"));
+        }
+        else if (type == "Weekly")
+        {
+            if (_rerollWeeklyHandle != null)
+                MelonCoroutines.Stop(_rerollWeeklyHandle);
+            _rerollWeeklyHandle = MelonCoroutines.Start(RerollQuestDelay("Weekly"));
+        }
+    }
+
+    public bool PauseRoutines()
+    {
+        return !GameState.IsRunner() || chestKeySpawned;
+    }
+    public void RefreshQuestList() 
+    { 
+        _gameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Quests/Quests");
+        _questsList = _gameObject.GetComponent<QuestsList>().lastScrollListData;    
+    }
+
+
+    private void StopAllQuestCoroutines()
+    {
+        if (_rerollDailyHandle != null) { MelonCoroutines.Stop(_rerollDailyHandle); _rerollDailyHandle = null; }
+        if (_rerollWeeklyHandle != null) { MelonCoroutines.Stop(_rerollWeeklyHandle); _rerollWeeklyHandle = null; }
+        if (_checkDailyHandle != null) { MelonCoroutines.Stop(_checkDailyHandle); _checkDailyHandle = null; }
+        if (_checkWeeklyHandle != null) { MelonCoroutines.Stop(_checkWeeklyHandle); _checkWeeklyHandle = null; }
+
+        checkingDailies = false;
+        checkingWeeklies = false;;
     }
 
     private void CheckQuests()
@@ -150,6 +244,10 @@ public class Enhanced_Quests : MonoBehaviour
     public IEnumerator RerollQuestDelay(String type)
     {
         yield return new WaitForSeconds(2f);
+        
+        if (PauseRoutines())
+            yield break;
+        
         RerollQuests(type);
     }
 
@@ -160,7 +258,11 @@ public class Enhanced_Quests : MonoBehaviour
             if (!checkingDailies)
             {
                 checkingDailies = true;
-                MelonCoroutines.Start(CheckRollQuests(type));
+
+                if (_checkDailyHandle != null)
+                    MelonCoroutines.Stop(_checkDailyHandle);
+
+                _checkDailyHandle = MelonCoroutines.Start(CheckRollQuests(type));
             }
         }
         else if (type == "Weekly")
@@ -168,34 +270,24 @@ public class Enhanced_Quests : MonoBehaviour
             if (!checkingWeeklies)
             {
                 checkingWeeklies = true;
-                MelonCoroutines.Start(CheckRollQuests(type));
+
+                if (_checkWeeklyHandle != null)
+                    MelonCoroutines.Stop(_checkWeeklyHandle);
+
+                _checkWeeklyHandle = MelonCoroutines.Start(CheckRollQuests(type));
             }
         }
     }
 
-/*    public void RerollDailyQuests()
-    {
-        dailiesRerolled = 0;
-
-        if (!checkingDailies)
-        {
-            checkingDailies = true;
-            MelonCoroutines.Start(checkDailies());
-        }
-    }
-
-
-    public void RerollWeeklyQuests()
-    {
-        if (!checkingWeeklies)
-        {
-            checkingWeeklies = true;
-            MelonCoroutines.Start(checkWeeklies());
-        }
-    }
-*/
     private IEnumerator CheckRollQuests(String type)
     {
+        if (PauseRoutines())
+        {
+            checkingDailies = false;
+            checkingWeeklies = false;
+            yield break;
+        }
+
         bool QuestsChanged = false;
 
         foreach (Quest q in _questsList)
@@ -212,6 +304,13 @@ public class Enhanced_Quests : MonoBehaviour
         }
 
         yield return new WaitForSeconds(0.5f);
+
+        if (PauseRoutines())
+        {
+            checkingDailies = false;
+            checkingWeeklies = false;
+            yield break;
+        }
 
         if (type == "Daily")
         {
@@ -245,7 +344,7 @@ public class Enhanced_Quests : MonoBehaviour
             case QuestType.ChestHuntChests:
                 {
                     var questTypeName = quest.GetIl2CppType().FullName;
-                    if (questTypeName == "DailyQuest" && ChestKeyQuest.isClaimed) return true; else return false;
+                    if (ChestKeyQuest.isClaimed) return true; else return false;
                 }
 
             //Kill With Rage Mode Daily vs Weekly
@@ -325,43 +424,55 @@ public class Enhanced_Quests : MonoBehaviour
                     return true;
             }
         }
-
-
         return false;
     }
 
-    private void RerollQuest(Quest quest, String type)
+    private void RerollQuest(Quest quest, string type)
     {
+        MelonCoroutines.Start(RerollQuestWithDelay(quest, type));
+    }
+
+    private IEnumerator RerollQuestWithDelay(Quest quest, String type)
+    {
+        if (PauseRoutines()) yield break;
+
+        if (quest == null)  yield break;
+
         if (type == "Daily")
         {
             var dq = new DailyQuest(quest.Pointer);
 
+//            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name}");
+
             _dailyQuestReroll.PrepareReroll(dq);
-            _dailyQuestReroll.RewardForShowing();
-            dailiesRerolled++;
+            yield return new WaitForSeconds(0.01f);
+
+            try
+            {
+                _dailyQuestReroll.RewardForShowing();
+                dailiesRerolled++;
+            }
+            catch (NullReferenceException)
+            {
+                Plugin.Logger.Warning("Skipped DailyQuestReroll.RewardForShowing due to null inside");
+            }
         }
         else if (type == "Weekly")
         {
             var wq = new WeeklyQuest(quest.Pointer);
 
             _weeklyQuestReroll.PrepareReroll(wq);
-            _weeklyQuestReroll.RewardForShowing();
+            yield return new WaitForSeconds(0.01f);
+
+            try
+            {
+                _weeklyQuestReroll.RewardForShowing();
+            }
+            catch (NullReferenceException)
+            {
+                Plugin.Logger.Warning("Skipped WeeklyQuestReroll.RewardForShowing due to null inside");
+            }
         }
-    }
-
-    private void RerollDailyQuest(DailyQuest quest) 
-    {
-        _dailyQuestReroll.PrepareReroll(quest);
-        _dailyQuestReroll.RewardForShowing();
-        DailiesChanged = true;
-        dailiesRerolled++;
-    }
-
-    private void RerollWeeklyQuest(WeeklyQuest quest)
-    {
-        _weeklyQuestReroll.PrepareReroll(quest);
-        _weeklyQuestReroll.RewardForShowing();
-        WeekliesChanged = true;
     }
 
     [HarmonyPatch(typeof(MapController), "ChangeMap")]
@@ -370,7 +481,7 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(MapController __instance)
         {
             if (__instance == null) return;
-            MelonCoroutines.Start(Enhanced_Quests.Instance.RerollQuestDelay("Daily"));
+            Enhanced_Quests.Instance.DelayedReroll("Daily");
         }
     }
 
@@ -380,9 +491,11 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(DailyQuestsManager __instance)
         {
             if (__instance == null) return;
-            while (!GameState.IsRunner())
-            { }
-            MelonCoroutines.Start(Enhanced_Quests.Instance.RerollQuestDelay("Daily"));
+
+            if (Enhanced_Quests.Instance.PauseRoutines())
+                Enhanced_Quests.Instance.SetTriggerRegen("Daily");
+            else
+                Enhanced_Quests.Instance.DelayedReroll("Daily");
         }
     }
     [HarmonyPatch(typeof(WeeklyQuestsManager), "RegenerateWeeklies")]
@@ -391,9 +504,10 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(WeeklyQuestsManager __instance)
         {
             if (__instance == null) return;
-            while (!GameState.IsRunner())
-            { }
-            MelonCoroutines.Start(Enhanced_Quests.Instance.RerollQuestDelay("Weekly"));
+            if (Enhanced_Quests.Instance.PauseRoutines())
+                Enhanced_Quests.Instance.SetTriggerRegen("Weekly");
+            else
+                Enhanced_Quests.Instance.DelayedReroll("Weekly");
         }
     }
 
@@ -403,8 +517,7 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(DailyQuestsManager __instance)
         {
             if (__instance == null) return;
-            MelonCoroutines.Start(Enhanced_Quests.Instance.RerollQuestDelay("Daily"));
-
+            Enhanced_Quests.Instance.DelayedReroll("Daily");
         }
     }
 
@@ -414,7 +527,7 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(WeeklyQuestsManager __instance)
         {
             if (__instance == null) return;
-            MelonCoroutines.Start(Enhanced_Quests.Instance.RerollQuestDelay("Weekly"));
+            Enhanced_Quests.Instance.DelayedReroll("Weekly");
         }
     }
 
@@ -424,11 +537,11 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(Quest __instance)
         {
             if (__instance == null) return;
-            while (!GameState.IsRunner())
-            { }
-
-            Enhanced_Quests.Instance?.Invoke(
-                nameof(Enhanced_Quests.CheckToRegenerate), 2f);
+            if (Enhanced_Quests.Instance.PauseRoutines())
+                Enhanced_Quests.Instance.SetTriggerRegen("Regen");
+            else
+                Enhanced_Quests.Instance?.Invoke(
+                    nameof(Enhanced_Quests.CheckToRegenerate), 2f);
         }
     }
 
@@ -438,11 +551,11 @@ public class Enhanced_Quests : MonoBehaviour
         static void Postfix(Quest __instance)
         {
             if (__instance == null) return;
-            while (!GameState.IsRunner())
-            { }
-
-            Enhanced_Quests.Instance?.Invoke(
-                nameof(Enhanced_Quests.CheckToRegenerate),2f);
+            if (Enhanced_Quests.Instance.PauseRoutines())
+                Enhanced_Quests.Instance.SetTriggerRegen("Regen");
+            else
+                Enhanced_Quests.Instance?.Invoke(
+                    nameof(Enhanced_Quests.CheckToRegenerate), 2f);
         }
     }
 
@@ -472,6 +585,21 @@ public class Enhanced_Quests : MonoBehaviour
             if (__instance.name != "Portal Button" && __instance.name != "Portal Button(Clone)") return;
             Enhanced_Quests.Instance?.CheckToResetPortal();
         }
+    }
+
+    [HarmonyPatch(typeof(ChestHuntKey), "OnObjectSpawn")]
+    public class Patch_ChestHuntKeyOnObjectSpawned
+    {
+        static void Postfix(ChestHuntKey __instance)
+        {
+            if (__instance == null) return;
+            Enhanced_Quests.Instance?.SetKeySpawn();
+        }
+    }
+
+    public void SetKeySpawn()
+    {
+        chestKeySpawned = true;
     }
 
     public void CheckToResetPortal()
