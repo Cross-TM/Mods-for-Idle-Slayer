@@ -108,7 +108,7 @@ namespace AutoAscendMod
         public void LateUpdate()
         {
 
-            if (!ascendReady && SlayerPoints.pre >= SlayerPoints.lifetime * 0.05 && SlayerPoints.pre > 25 && GameState.IsRunner())
+            if (!ascendReady && SlayerPoints.pre >= SlayerPoints.lifetime * 0.1 && SlayerPoints.pre > 25 && GameState.IsRunner())
             {
                 MelonCoroutines.Start(AscendAndPurchase());
             }
@@ -124,10 +124,9 @@ namespace AutoAscendMod
         {
             ascendReady = true;
     
-            // 1) Only enter here if you’ve already hit 5% and >25…
+            // 1) Only enter here if you’ve already hit 10% and >25…
             //    (presumably you check that *before* you StartCoroutine this)
-
-            float firstTier = 300f;  // 5%
+            float firstTier = 300f;  // 10%
             float secondTier = 60f;  // 20%
             float thirdTier = 30f;  // 100%
 
