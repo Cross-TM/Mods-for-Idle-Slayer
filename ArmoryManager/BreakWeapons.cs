@@ -33,24 +33,24 @@ public class BreakWeapons : MonoBehaviour
     public void LateUpdate()
     {
         double before = _keep;
-        
-        if (Input.GetKeyUp(KeyCode.F7))
-        {
-            if (_keep + 5 > (int)_weaponsManager.GetMaxSlots())
-                _keep = (int)_weaponsManager.GetMaxSlots();
-            else
-                _keep += 5;
 
-            if (_keep != before)
-                Plugin.Logger.Msg($"Weapons to keep: {_keep}");
-        }
-
-        if (Input.GetKeyUp(KeyCode.F8))
+        if (Input.GetKeyUp(KeyCode.Alpha5))
         {
             if (_keep - 5 < Plugin.Config.LowerBoundOfWeapons.Value)
                 _keep = Plugin.Config.LowerBoundOfWeapons.Value;
             else
                 _keep -= 5;
+
+            if (_keep != before)
+                Plugin.Logger.Msg($"Weapons to keep: {_keep}");
+        }
+
+        if (Input.GetKeyUp(KeyCode.Alpha6))
+        {
+            if (_keep + 5 > (int)_weaponsManager.GetMaxSlots())
+                _keep = (int)_weaponsManager.GetMaxSlots();
+            else
+                _keep += 5;
 
             if (_keep != before)
                 Plugin.Logger.Msg($"Weapons to keep: {_keep}");
