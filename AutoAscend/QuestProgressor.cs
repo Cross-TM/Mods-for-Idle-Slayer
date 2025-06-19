@@ -10,6 +10,8 @@ using UnityEngine;
 using HarmonyLib;
 using MelonLoader;
 
+using System.IO;
+
 namespace AutoAscendMod
 {
     public class QuestProgressor : MonoBehaviour
@@ -62,6 +64,7 @@ namespace AutoAscendMod
         {
             RefreshQuestsScrollList();
             RefreshQuestsScrollList();
+            CheckQuestList();
         }
 
         private void LateUpdate()
@@ -70,6 +73,18 @@ namespace AutoAscendMod
             {
                 CheckQuestList();
             }
+
+            if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+//                LogAllUpgrades();
+            }
+            /*            if (Input.GetKeyDown(KeyCode.Alpha2))
+                        {
+                            Plugin.Logger.Msg("Spawning Chest Key");
+                            Vector2 spawnPos = new(_mapController.player.position.x + 25f, _mapController.groundYPos);
+                            _mapController.SpawnChestHuntKey(spawnPos);
+                        }
+            */
         }
 
         private void RefreshQuestsScrollList()
@@ -77,17 +92,17 @@ namespace AutoAscendMod
             _questGameObject.GetComponent<QuestsList>().RefreshList();
             questsScrollList = _questGameObject.GetComponent<QuestsList>().lastScrollListData;
             
-            _portalPurchased = AscensionSkills.list.PortalTraveler.unlocked;
+            _portalPurchased = AscensionSkills.list.Portals.unlocked;
         }
 
         public void CheckQuestList()
         {
             
-            Plugin.Logger.Msg("Checking Quest List...");
+//            Plugin.Logger.Msg("Checking Quest List...");
 
             if (!GameState.IsRunner()) return;
 
-            Plugin.Logger.Msg("GameState is Runner, proceeding with quest checks...");
+//            Plugin.Logger.Msg("GameState is Runner, proceeding with quest checks...");
 
             RefreshQuestsScrollList();
 
@@ -127,26 +142,15 @@ namespace AutoAscendMod
                         ? bestMap == (_mapController.selectedMap as BaseMap)
                         : bestMap.Pointer == _mapController.lastRunnerMap.Pointer;
 
-                    if (!isCurrentMap && GameState.IsRunner())
+                    if (GameState.IsRunner())
                     {
-                        _mapController.SpawnPortal(bestMap, new(new Vector2(_mapController.player.position.x + 25f, _mapController.groundYPos)));
+                        if(!isCurrentMap)
+                            _mapController.SpawnPortal(bestMap, new(new Vector2(_mapController.player.position.x + 25f, _mapController.groundYPos)));
 
-                        foreach (var q in questsScrollList)
-                        {
-                            if (q.questType == QuestType.KillEnemiesWithCharacter)
-                            {
-                                bestMap.SetCurrentStageEnemies();
-
-                                if (bestMap.currentStageEnemies.Contains(q.enemyToKill))
-                                    _playerSkinManager.ApplySkin(q.characterRequired);
-
-                                break;
-                            }
-                        }
+                        SetCharacterSkin(bestMap);
                     }
                 }
             }
-
         }
         private List<BaseMap> BestMapForQuest(Quest quest, String priority = "normal")
         {
@@ -166,14 +170,12 @@ namespace AutoAscendMod
 
             if (matches.Count == 0 && priority == "Special" && quest.questType != QuestType.KillEnemiesOfType)
             {
-                Enemy lower = quest.enemyToKill.evolutionBackward;
+                Quest blocker;
 
-                foreach (Map m in _mapController.GetAvailableMaps(true))
+                if (quest.questType == QuestType.KillEnemies)
                 {
-                    var map = new BaseMap(m.Pointer);
-
-                    if (MapMatchesEnemy(map, lower))
-                        matches.Add(map);
+                    blocker = quest.enemyToKill.upgradeToUnlockIt.unlockedWithQuest;
+                    matches = BestMapForQuest(blocker, "Special");
                 }
             }
 
@@ -277,6 +279,37 @@ namespace AutoAscendMod
             return false;
         }
 
+        private void SetCharacterSkin(BaseMap bestMap)
+        {
+            bool SkinSet = false;
+            foreach (var q in questsScrollList)
+            {
+                if (q.questType == QuestType.KillEnemiesWithCharacter)
+                {
+                    bestMap.SetCurrentStageEnemies();
+
+                    foreach (Enemy e in bestMap.currentStageEnemies)
+                    {
+                        if (_questManager.EnemyFromSameStageOrBelow(q.enemyToKill, e))
+                        {
+                            if (_playerSkinManager.skin != q.characterRequired)
+                                _playerSkinManager.ApplySkin(q.characterRequired);
+
+                            SkinSet = true;
+                            break;
+                        }
+                    }
+                }
+                if (SkinSet) break;
+            }
+
+            if (!SkinSet && _playerSkinManager.skin != CharacterSkins.list.Agnis)
+            {
+                _playerSkinManager.ApplySkin(CharacterSkins.list.Agnis);
+            }
+
+        }
+
         private void LogAllQuests()
         {
             int i = 1;
@@ -306,11 +339,64 @@ namespace AutoAscendMod
 
                 i++;
             }
-
-
         }
 
-/*        [HarmonyPatch(typeof(Quest), "Claim")]
+        private void LogAllUpgrades()
+        {
+            var path = Path.Combine(Application.persistentDataPath, "upgrades.csv");
+            var sb = new StringBuilder();
+
+            // header
+            sb.AppendLine("Index,Name,LocalizedName,Description,Cost,Bought,Disabled,IsSpecialUnlock,SpecialUnlocked,PermanentUpgrade,UnlockedWithQuest,MaterialName");
+
+            int i = 1;
+            foreach (var u in _playerInventory.upgrades)
+            {
+                // safe-call GetDescription
+                string rawDesc;
+                try
+                {
+                    rawDesc = u.GetDescription();
+                }
+                catch (FormatException fe)
+                {
+                    Plugin.Logger.Warning($"[GetDescription] bad format on '{u.name}': {fe.Message}");
+                    rawDesc = u.localizedDescription ?? "";
+                }
+                catch (Exception ex)
+                {
+                    Plugin.Logger.Warning($"[GetDescription] exception on '{u.name}': {ex.GetType().Name}");
+                    rawDesc = u.localizedDescription ?? "";
+                }
+
+                // escape helper
+                string esc(string s) => (s ?? "").Replace("\"", "\"\"");
+
+                var name = esc(u.name);
+                var locName = esc(u.localizedName);
+                var desc = esc(rawDesc);
+                var cost = u.GetCost();
+                var bought = u.bought.ToString().ToLower();
+                var disabled = u.disabled.ToString().ToLower();
+                var spec = u.isSpecialUnlock.ToString().ToLower();
+                var unlocked = u.specialUnlocked.ToString().ToLower();
+                var perm = u.permanentUpgrade.ToString().ToLower();
+                var quest = esc(u.unlockedWithQuest?.name);
+                var mat = esc(u.GetMaterial()?.name);
+
+                sb.AppendLine(
+                    $"{i},\"{name}\",\"{locName}\",\"{desc}\",{cost},{bought},{disabled},{spec},{unlocked},{perm},\"{quest}\",\"{mat}\""
+                );
+                i++;
+            }
+
+            File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+            Plugin.Logger.Msg($"[CSV] Exported upgrades → {path}");
+        }
+
+
+
+        [HarmonyPatch(typeof(Quest), "Claim")]
         public static class Quest_Claim_Patch
         {
             public static void Postfix()
@@ -319,8 +405,8 @@ namespace AutoAscendMod
                     nameof(QuestProgressor.Instance.CheckQuestList), 2f);
             }
         }
-*/
-/*        [HarmonyPatch(typeof(MapController), "ChangeMap")]
+
+        [HarmonyPatch(typeof(MapController), "ChangeMap")]
         public class Patch_MapControllerChangeMap
         {
             static void Postfix()
@@ -329,5 +415,5 @@ namespace AutoAscendMod
                     nameof(QuestProgressor.Instance.CheckQuestList), 2f);
             }
         }
-*/    }
+    }
 }
