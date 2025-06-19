@@ -7,6 +7,7 @@
         <LangVersion>latest</LangVersion>
 		<Version>1.0.0</Version>
 		<PlatformTarget>x64</PlatformTarget>
+		<ModManagerRoot>$(LocalAppData)\IdleSlayerModManager</ModManagerRoot>
 	</PropertyGroup>
 
     <ItemGroup>
@@ -16,36 +17,36 @@
 
 	<ItemGroup>
 		<Reference Include="IdleSlayerMods.Common">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\Mods\IdleSlayerMods.Common.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\Mods\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
 		</Reference>
 		<Reference Include="Assembly-CSharp">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="Il2Cpp">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Dependencies\SupportModules\Il2Cpp.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Dependencies\SupportModules\Il2Cpp.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2CppInterop.Runtime">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
 		</Reference>
 		<Reference Include="Il2Cppmscorlib">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.InputLegacyModule">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UI">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.UI.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UIModule">
-			<HintPath>C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.UIModule.dll</HintPath>
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.UIModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 	</ItemGroup>
@@ -53,5 +54,13 @@
 	<ItemGroup>
       <None Include="BetterUpgrades.csproj.user" />
     </ItemGroup>
+	<ItemGroup>
+		<None Include="Assets\manifest.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="Assets\banner.png" Condition="Exists('Assets\banner.png')">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
 </Project>

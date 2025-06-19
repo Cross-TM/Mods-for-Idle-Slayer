@@ -1,10 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<Target Name="CustomFolderDeploy" AfterTargets="Build">
-		<Copy
-		  SourceFiles ="$(TargetPath)"
-		  DestinationFolder="C:\Users\Jake Crossin\AppData\Local\IdleSlayerModManager\Mods"
-		  SkipUnchangedFiles="True"
-		  ContinueOnError="False" />
+	<Target Name="CustomFolderDeploy" AfterTargets="AfterBuild" BeforeTargets="MSDeployPublish">
+		<PropertyGroup>
+			<CustomFolder>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\$(Configuration)\net6.0'))</CustomFolder>
+			<PublishFolder>$(MSBuildProjectDirectory)\Publish\$(Configuration)</PublishFolder>
+			<TempFolder>$(PublishFolder)\temp</TempFolder>
+		</PropertyGroup>
+
+		<!-- Existing items -->
+		<CreateItem Include="$(CustomFolder)\$(AssemblyName).dll">
+			<Output TaskParameter="Include" ItemName="MainFiles" />
+			<Output TaskParameter="Include" ItemName="CustomFiles" />
+		</CreateItem>
+		<CreateItem Include="$(CustomFolder)\Assets\manifest.json">
+			<Output TaskParameter="Include" ItemName="CustomFiles" />
+		</CreateItem>
+		<CreateItem
+			Include="$(CustomFolder)\Assets\banner.png"
+			Condition="Exists('$(CustomFolder)\Assets\banner.png')">
+			<Output TaskParameter="Include" ItemName="CustomFiles" />
+		</CreateItem>
+
+		<!-- Create directories -->
+		<MakeDir Directories="$(PublishFolder)" />
+		<MakeDir Directories="$(TempFolder)" />
+
+		<!-- Copy files to temp folder -->
+		<Copy SourceFiles="@(CustomFiles)" DestinationFolder="$(TempFolder)" />
+
+		<!-- Zip the temp folder -->
+		<ZipDirectory
+                SourceDirectory="$(TempFolder)"
+                DestinationFile="$(PublishFolder)\$(AssemblyName).zip"
+                Overwrite="true" />
+
+		<!-- Clean up temp folder -->
+		<RemoveDir Directories="$(TempFolder)" />
+
+		<!-- Copy to mod manager folder in deployed and non deployed context, ready for testing -->
+		<Copy SourceFiles="@(MainFiles)" DestinationFolder="$(LocalAppData)\IdleSlayerModManager\ModLoader\Mods" SkipUnchangedFiles="True" ContinueOnError="False" />
+		<Copy SourceFiles="@(CustomFiles)" DestinationFolder="$(LocalAppData)\IdleSlayerModManager\Mods\$(AssemblyName)" SkipUnchangedFiles="True" ContinueOnError="False" />
+
 	</Target>
 </Project>
