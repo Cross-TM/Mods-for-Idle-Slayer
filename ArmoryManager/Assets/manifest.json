@@ -1,9 +1,9 @@
 {
   "name": "Armory Manager",
   "author": "CrossTM",
-  "version": "1.1.0",
-  "description": "",
-  "nexus_id": "",
-  "donate_url": "",
-  "github_url": ""
+  "version": "1.2.1",
+  "description": "Manage the Armory so it never fills up",
+  "nexus_id": "https://www.nexusmods.com/idleslayer/mods/24",
+  "donate_url": "https://paypal.me/CROSSTM",
+  "github_url": "https://github.com/Cross-TM/Mods-for-Idle-Slayer/tree/main/ArmoryManager"
 }
