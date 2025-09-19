@@ -13,8 +13,6 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
     internal MelonPreferences_Entry<bool> AutoRerollGetMaterials;
     internal MelonPreferences_Entry<bool> AutoRerollHitSilverBox;
     internal MelonPreferences_Entry<bool> AutoRerollHitRandomBox;
-    internal MelonPreferences_Entry<bool> AutoRerollWindDashKills;
-
 
     protected override void SetBindings()
     {
@@ -26,13 +24,11 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
             "Toggle Reset Portal");
         ResetReroll = Bind("ResetReroll", false,
             "Toggle Reset Quest Reroll");
-        EnableAutoReroll = Bind("EnableAutoReroll", false,
+        EnableAutoReroll = Bind("EnableAutoReroll", true,
             "Enable Automatic Quest Reroll Functionality");
         AutoRerollGetMaterials = Bind("AutoRerollGetMaterials", true,
             "Toggle Automatic Reroll of Get Materials Quests");
-        AutoRerollWindDashKills = Bind("AutoRerollWindDashKills", true,
-            "Toggle Automatic Reroll Wind Dash Kills");
-        AutoRerollHitSilverBox = Bind("AutoRerollHitSilverBox", false,
+        AutoRerollHitSilverBox = Bind("AutoRerollHitSilverBox", true,
             "Toggle Automatic Reroll of Hit Silver Boxes Quests");
         AutoRerollHitRandomBox = Bind("AutoRerollHitRandomBox", false,
             "Toggle Automatic Reroll of Hit Random Boxes Quests");

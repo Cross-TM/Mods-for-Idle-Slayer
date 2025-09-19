@@ -56,8 +56,8 @@ public class Enhanced_Quests : MonoBehaviour
     private int dailiesRerolled;
     private int weekliesRerolled;
 
-    private int softRerollCap = 20;
-    private int hardRerollCap = 25;
+    private int softRerollCap = 15;
+    private int hardRerollCap = 20;
 
     public void Awake()
     {
@@ -334,6 +334,8 @@ public class Enhanced_Quests : MonoBehaviour
     {
         QuestType questType = quest.questType;
 
+        if(!Plugin.Settings.EnableAutoReroll.Value) return true;
+
         switch (questType)
         {
             //Quick Quests
@@ -359,7 +361,7 @@ public class Enhanced_Quests : MonoBehaviour
 
             //Conditional Quests
             case QuestType.GetMaterials:
-                return false;
+                return !Plugin.Settings.AutoRerollGetMaterials.Value;
             case QuestType.KillEnemies:
             case QuestType.KillGiants:
                 return ConditionalQuestCheck(quest);
@@ -372,7 +374,9 @@ public class Enhanced_Quests : MonoBehaviour
 
             //Long Quests
             case QuestType.HitRandomBoxes:
+                return !Plugin.Settings.AutoRerollHitRandomBox.Value || (dailiesRerolled > hardRerollCap);
             case QuestType.HitRandomSilverBoxes:
+                return !Plugin.Settings.AutoRerollHitSilverBox.Value || (dailiesRerolled > hardRerollCap);
             case QuestType.UseRageMode:
                 return (dailiesRerolled > hardRerollCap);
 
