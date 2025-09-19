@@ -334,7 +334,7 @@ public class Enhanced_Quests : MonoBehaviour
     {
         QuestType questType = quest.questType;
 
-        if(!Plugin.Settings.EnableAutoReroll.Value) return true;
+        if (!Plugin.Settings.ResetReroll.Value || !Plugin.Settings.EnableAutoReroll.Value) return true;
 
         switch (questType)
         {
