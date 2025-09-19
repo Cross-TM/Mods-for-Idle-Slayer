@@ -56,6 +56,9 @@ public class Enhanced_Quests : MonoBehaviour
     private int dailiesRerolled;
     private int weekliesRerolled;
 
+    private int softRerollCap = 20;
+    private int hardRerollCap = 25;
+
     public void Awake()
     {
         Instance = this;
@@ -335,9 +338,9 @@ public class Enhanced_Quests : MonoBehaviour
         {
             //Quick Quests
             case QuestType.CompleteDailyQuests:
-            case QuestType.HitRandomSilverBoxes:
             case QuestType.PickUpCoins:
             case QuestType.PickUpGemstones:
+            case QuestType.Boost:
                 return true;
 
             //Chest Hunt Daily vs Weekly and if relevant quest is completed
@@ -351,11 +354,12 @@ public class Enhanced_Quests : MonoBehaviour
             case QuestType.KillEnemiesWithRageMode:
                 {
                     var questTypeName = quest.GetIl2CppType().FullName;
-                    if (questTypeName == "DailyQuest") return true; else return false;
+                    if (questTypeName == "DailyQuest") return (dailiesRerolled > hardRerollCap); else return false;
                 }
 
             //Conditional Quests
             case QuestType.GetMaterials:
+                return false;
             case QuestType.KillEnemies:
             case QuestType.KillGiants:
                 return ConditionalQuestCheck(quest);
@@ -363,13 +367,14 @@ public class Enhanced_Quests : MonoBehaviour
             //Medium Quests
             case QuestType.BonusStage:
             case QuestType.BonusStageSections:
-            case QuestType.Boost:
-                return (dailiesRerolled > 15);
+            case QuestType.CompleteAscendingHeights:
+                return (dailiesRerolled > softRerollCap);
 
             //Long Quests
             case QuestType.HitRandomBoxes:
+            case QuestType.HitRandomSilverBoxes:
             case QuestType.UseRageMode:
-                return (dailiesRerolled > 20);
+                return (dailiesRerolled > hardRerollCap);
 
             //Manual Quest
             case QuestType.CraftTemporaryItems:
@@ -378,6 +383,7 @@ public class Enhanced_Quests : MonoBehaviour
                 return false;
 
             default:
+                Plugin.Logger.Warning($"Unhandled QuestType: {questType} - {quest.name}");   
                 return true; // Default case for unhandled quest types
         }
     }
@@ -442,7 +448,7 @@ public class Enhanced_Quests : MonoBehaviour
         {
             var dq = new DailyQuest(quest.Pointer);
 
-//            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name}");
+            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name}");
 
             _dailyQuestReroll.PrepareReroll(dq);
             yield return new WaitForSeconds(0.01f);
