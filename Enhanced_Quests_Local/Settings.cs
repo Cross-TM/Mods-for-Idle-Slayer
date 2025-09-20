@@ -13,6 +13,9 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
     internal MelonPreferences_Entry<bool> AutoRerollGetMaterials;
     internal MelonPreferences_Entry<bool> AutoRerollHitSilverBox;
     internal MelonPreferences_Entry<bool> AutoRerollHitRandomBox;
+    internal MelonPreferences_Entry<int> SoftRerollCap;
+    internal MelonPreferences_Entry<int> HardRerollCap;
+    internal MelonPreferences_Entry<int> RerollCheckMinutes;
 
     protected override void SetBindings()
     {
@@ -32,6 +35,11 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
             "Toggle Automatic Reroll of Hit Silver Boxes Quests");
         AutoRerollHitRandomBox = Bind("AutoRerollHitRandomBox", false,
             "Toggle Automatic Reroll of Hit Random Boxes Quests");
-
+        SoftRerollCap = Bind("SoftRerollCap", 15,
+            "Soft reroll cap for medium quests (minimum: 15)");
+        HardRerollCap = Bind("HardRerollCap", 20,
+            "Hard reroll cap for long quests (minimum: 20)");
+        RerollCheckMinutes = Bind("RerollCheckMinutes", 5,
+            "Minutes between forced reroll checks (minimum: 5)");
     }
 }
