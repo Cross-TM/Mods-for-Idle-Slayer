@@ -56,11 +56,11 @@ public class Enhanced_Quests : MonoBehaviour
     private int dailiesRerolled;
     private int weekliesRerolled;
 
-    private int softRerollCap = Math.Max(Plugin.Settings.SoftRerollCap.Value, 15);
-    private int hardRerollCap = Math.Max(Plugin.Settings.HardRerollCap.Value, 20);
-    private float rerollCheckMinutes = Math.Max(Plugin.Settings.RerollCheckMinutes.Value, 5);
+    private int _softRerollCap;
+    private int _hardRerollCap;
+    private float _rerollCheckMinutes;
 
-    private float rerollCheckTimer = 0f;
+    private float _rerollCheckTimer = 0f;
 
     public void Awake()
     {
@@ -81,6 +81,9 @@ public class Enhanced_Quests : MonoBehaviour
         weeklyQuests = _craftableItems.WeeklyQuests;
         dailyQuests = _craftableItems.DailyQuests;
 
+        _softRerollCap = Math.Max(Plugin.Settings.SoftRerollCap.Value, 15);
+        _hardRerollCap = Math.Max(Plugin.Settings.HardRerollCap.Value, 20);
+        _rerollCheckMinutes = Math.Max(Plugin.Settings.RerollCheckMinutes.Value, 5);
     }
 
     public void Start()
@@ -97,6 +100,16 @@ public class Enhanced_Quests : MonoBehaviour
                 ChestKeyQuest = quest;
                 break;
             }
+        }
+
+        foreach (var player_drop in _playerInventory.drops)
+        {
+            Plugin.Logger.Msg($"Player Materials - {player_drop.name}: {player_drop.amount}/{player_drop.GetMaxAmount()}");
+        }
+
+        foreach (var divinity in _playerInventory.divinities)
+        {
+            Plugin.Logger.Msg($"Player Divinities - {divinity.name} - Is Dark: {divinity.isDark} - Enabled: {divinity.unlocked}");
         }
     }
 
@@ -134,14 +147,17 @@ public class Enhanced_Quests : MonoBehaviour
         }
 
         // Timer for forced reroll check
-        rerollCheckTimer += Time.unscaledDeltaTime;
-        if (rerollCheckTimer >= Plugin.Settings.RerollCheckMinutes.Value * 60f)
+        if (Plugin.Settings.EnableForceRerollTimer.Value)
         {
-            rerollCheckTimer = 0f;
-            Plugin.Logger.Msg("Forced reroll check triggered by timer.");
-            StopAllQuestCoroutines();
-            DelayedReroll("Daily");
-            DelayedReroll("Weekly");
+            _rerollCheckTimer += Time.unscaledDeltaTime;
+            if (_rerollCheckTimer >= Plugin.Settings.RerollCheckMinutes.Value * 60f)
+            {
+                _rerollCheckTimer = 0f;
+                Plugin.Logger.Msg("Forced reroll check triggered by timer.");
+                StopAllQuestCoroutines();
+                DelayedReroll("Daily");
+                DelayedReroll("Weekly");
+            }
         }
     }
 
@@ -237,6 +253,7 @@ public class Enhanced_Quests : MonoBehaviour
 
         int dailyQuestsCount = 0;
         int weeklyQuestsCount = 0;
+        dailiesRerolled = 0;
         foreach (var quest in _questsList)
         {
             var questTypeName = quest.GetIl2CppType().FullName;
@@ -341,6 +358,7 @@ public class Enhanced_Quests : MonoBehaviour
         if (QuestsChanged)
             RerollQuests(type);
         else if (type == "Daily")
+            Plugin.Logger.Msg("Resetting Dailies Reroll Counter");
             dailiesRerolled = 0;
     }
 
@@ -370,7 +388,7 @@ public class Enhanced_Quests : MonoBehaviour
             case QuestType.KillEnemiesWithRageMode:
                 {
                     var questTypeName = quest.GetIl2CppType().FullName;
-                    if (questTypeName == "DailyQuest") return (dailiesRerolled > hardRerollCap); else return false;
+                    if (questTypeName == "DailyQuest") return (dailiesRerolled > _hardRerollCap); else return false;
                 }
 
             //Conditional Quests
@@ -392,9 +410,9 @@ public class Enhanced_Quests : MonoBehaviour
             case QuestType.BonusStage:
             case QuestType.BonusStageSections:
             case QuestType.CompleteAscendingHeights:
-                if (dailiesRerolled > softRerollCap)
+                if (dailiesRerolled > _softRerollCap)
                 {
-                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because soft cap ({softRerollCap}) reached.");
+                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because soft cap ({_softRerollCap}) reached. Total Rerolls: {dailiesRerolled}");
                     return true;
                 }
                 else
@@ -403,9 +421,9 @@ public class Enhanced_Quests : MonoBehaviour
                 }
             //Long Quests
             case QuestType.HitRandomBoxes:
-                if (!Plugin.Settings.AutoRerollHitRandomBox.Value || (dailiesRerolled > hardRerollCap))
+                if (!Plugin.Settings.AutoRerollHitRandomBox.Value || (dailiesRerolled > _hardRerollCap))
                 {
-                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({hardRerollCap}) reached.");
+                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({_hardRerollCap}) reached. Total Rerolls: {dailiesRerolled}");
                     return true;
                 }
                 else
@@ -413,9 +431,9 @@ public class Enhanced_Quests : MonoBehaviour
                     return false;
                 }
             case QuestType.HitRandomSilverBoxes:
-                if (!Plugin.Settings.AutoRerollHitSilverBox.Value || (dailiesRerolled > hardRerollCap))
+                if (!Plugin.Settings.AutoRerollHitSilverBox.Value || (dailiesRerolled > _hardRerollCap))
                 {
-                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({hardRerollCap}) reached.");
+                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({_hardRerollCap}) reached. Total Rerolls:  {dailiesRerolled}");
                     return true;
                 }
                 else
@@ -423,9 +441,9 @@ public class Enhanced_Quests : MonoBehaviour
                     return false;
                 }
             case QuestType.UseRageMode:
-                if (dailiesRerolled > hardRerollCap)
+                if (dailiesRerolled > _hardRerollCap)
                 {
-                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({hardRerollCap}) reached.");
+                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because hard cap ({_hardRerollCap}) reached. Total Rerolls:  {dailiesRerolled}");
                     return true;
                 }
                 else
@@ -468,9 +486,9 @@ public class Enhanced_Quests : MonoBehaviour
         {
             if (quest.enemyToKill.name == "enemy_king_goblin" || quest.enemyToKill.name == "enemy_soul_goblin")
             {
-                if (dailiesRerolled > softRerollCap)
+                if (dailiesRerolled > _softRerollCap)
                 {
-                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because soft cap ({softRerollCap}) reached.");
+                    Plugin.Logger.Msg($"Quest '{quest.name}' - ({quest.questType}) kept because soft cap ({_softRerollCap}) reached.");
                     return true;
                 }
                 else
@@ -513,7 +531,7 @@ public class Enhanced_Quests : MonoBehaviour
         {
             var dq = new DailyQuest(quest.Pointer);
 
-            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name}");
+            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name} - Goal: {dq.questCurrentGoal}/{dq.questGoal}. Total Rerolls: {dailiesRerolled}");
 
             _dailyQuestReroll.PrepareReroll(dq);
             yield return new WaitForSeconds(0.01f);

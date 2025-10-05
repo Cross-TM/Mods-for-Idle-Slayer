@@ -15,6 +15,7 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
     internal MelonPreferences_Entry<bool> AutoRerollHitRandomBox;
     internal MelonPreferences_Entry<int> SoftRerollCap;
     internal MelonPreferences_Entry<int> HardRerollCap;
+    internal MelonPreferences_Entry<bool> EnableForceRerollTimer;
     internal MelonPreferences_Entry<int> RerollCheckMinutes;
 
     protected override void SetBindings()
@@ -39,6 +40,8 @@ internal sealed class Settings(string configName) : BaseConfig(configName)
             "Soft reroll cap for medium quests (minimum: 15)");
         HardRerollCap = Bind("HardRerollCap", 20,
             "Hard reroll cap for long quests (minimum: 20)");
+        EnableForceRerollTimer = Bind("EnableForceRerollTimer", false,
+            "Toggle forced rerolls every X amount of minutes");
         RerollCheckMinutes = Bind("RerollCheckMinutes", 5,
             "Minutes between forced reroll checks (minimum: 5)");
     }
