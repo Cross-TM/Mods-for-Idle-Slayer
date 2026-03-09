@@ -2,6 +2,7 @@ using IdleSlayerMods.Common;
 using MelonLoader;
 using MyPluginInfo = Enhanced_Quests_Local.MyPluginInfo;
 using Plugin = Enhanced_Quests_Local.Plugin;
+using System.Text;
 
 [assembly: MelonInfo(typeof(Plugin), MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION, MyPluginInfo.PLUGIN_AUTHOR)]
 [assembly: MelonAdditionalDependencies("IdleSlayerMods.Common")]
@@ -21,7 +22,16 @@ public class Plugin : MelonMod
 
     public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
+
         if (sceneName != "Game") return;
-        ModUtils.RegisterComponent<Enhanced_Quests>();
-    }
+        ModUtils.RegisterComponent<Enhanced_Quests_Local>();
+    
+/*        if (IsCustomBuild)
+            ModUtils.RegisterComponent<OptimalQuests>();
+*/    }
+
+
+    private static string EnvVarName => Encoding.UTF8.GetString(Convert.FromBase64String("SURMRVNMQVlFUl9DVVNUT01CVUlMRA=="));
+    public static bool IsCustomBuild => Environment.GetEnvironmentVariable(EnvVarName) == "1";
+
 }

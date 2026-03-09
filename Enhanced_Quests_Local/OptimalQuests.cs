@@ -1,0 +1,503 @@
+﻿using HarmonyLib;
+using Il2Cpp;
+using UnityEngine;
+//using UnityEngine.UI;
+using System.Collections;
+using MelonLoader;
+/*using System.Linq;
+using System.Collections.Generic;
+using Il2CppInterop.Runtime.InteropTypes.Arrays;
+*/
+namespace Enhanced_Quests_Local;
+
+public class OptimalQuests : MonoBehaviour
+{
+	public static OptimalQuests Instance { get; private set; }
+
+	private QuestManager _questManager;
+	private DailyQuestsManager _dailyQuestsManager;
+	private WeeklyQuestsManager _weeklyQuestsManager;
+	private DailyQuestReroll _dailyQuestReroll;
+	private WeeklyQuestReroll _weeklyQuestReroll;
+
+	private PlayerInventory _playerInventory;
+	private MapController _mapController;
+
+	private Quest ChestKeyQuest;
+    //    public BaseMap newMap;
+
+    private GameObject _gameObject;
+    private Il2CppSystem.Collections.Generic.List<Quest> _questsList;
+
+	private object _rerollDailyHandle;
+	private object _rerollWeeklyHandle;
+	private object _checkDailyHandle;
+	private object _checkWeeklyHandle;
+
+	private bool _lastIsRunner;
+	private bool checkingDailies;
+	private bool checkingWeeklies;
+	private bool chestKeySpawned;
+
+	private bool triggerDailies;
+	private bool triggerWeeklies;
+	private bool triggerRegen;
+
+	private int dailiesRerolled;
+//	private int weekliesRerolled;
+
+    public void Awake()
+    {
+        Instance = this;
+
+//        _portalButton = PortalButton.instance;
+        _dailyQuestReroll = DailyQuestReroll.instance;
+        _weeklyQuestReroll = WeeklyQuestReroll.instance;
+
+        _dailyQuestsManager = DailyQuestsManager.instance;
+        _weeklyQuestsManager = WeeklyQuestsManager.instance;
+        _questManager = QuestManager.instance;
+
+        _playerInventory = PlayerInventory.instance;
+        _mapController = MapController.instance;
+
+/*        _craftableItems = CraftableItems.list;
+        weeklyQuests = _craftableItems.WeeklyQuests;
+        dailyQuests = _craftableItems.DailyQuests;
+*/
+    }
+
+    public void Start()
+    {
+        _lastIsRunner = GameState.IsRunner();
+
+/*        CheckToRegenerate();
+        CheckToRerollQuests();
+*/
+        foreach (Quest quest in _playerInventory.allQuests)
+        {
+            if (quest.name == "quest_the_key_to_success")
+            {
+                ChestKeyQuest = quest;
+                break;
+            }
+        }
+    }
+
+    public void Update()
+    {
+        bool isRunner = GameState.IsRunner();
+
+        if (_lastIsRunner && !isRunner)
+            StopAllQuestCoroutines();
+
+        if (isRunner && !_lastIsRunner)
+        {
+            chestKeySpawned = false;
+            CheckTriggerRegen();
+        }
+        _lastIsRunner = isRunner;
+
+/*        if (isRunner && !questsChecking)
+        {
+            questsChecking = true;
+            CheckQuests();
+        }
+*/
+        if (Input.GetKeyDown(KeyCode.Alpha0))
+        {
+            Plugin.Logger.Msg("Refreshing Quest List");
+
+            StopAllQuestCoroutines();
+            DelayedReroll("Daily");
+            DelayedReroll("Weekly");
+        }
+
+        if (Input.GetKeyDown(KeyCode.Alpha9))
+        {
+            _dailyQuestReroll.RewardForShowing();
+        }
+    }
+
+    public void RefreshQuestList()
+    {
+        _gameObject = GameObject.Find("UIManager/Safe Zone/Shop Panel/Wrapper/Quests/Quests");
+        if (_gameObject == null) return;
+
+        var questsList = _gameObject.GetComponent<QuestsList>();
+        if (questsList == null) return;
+
+        _questsList = questsList.lastScrollListData;
+    }
+
+
+    public void SetTriggerRegen(String type)
+    {
+        if (type == "Daily")
+            triggerDailies = true;
+        else if (type == "Weekly")
+            triggerWeeklies = true;
+        else if (type == "Regen")
+            triggerRegen = true;
+    }
+
+    public void CheckTriggerRegen()
+    {
+        if (triggerDailies)
+        {
+            triggerDailies = false;
+            DelayedReroll("Daily");
+        }
+
+        if (triggerWeeklies)
+        {
+            triggerWeeklies = false;
+            DelayedReroll("Weekly");
+        }
+
+        if (triggerRegen)
+        {
+            triggerRegen = false;
+            Enhanced_Quests_Local.Instance?.Invoke(nameof(Enhanced_Quests_Local.CheckToRegenerate), 2f);
+        }
+    }
+
+    public void DelayedReroll(String type)
+    {
+        if (type == "Daily")
+        {
+            if (_rerollDailyHandle != null)
+                MelonCoroutines.Stop(_rerollDailyHandle);
+            _rerollDailyHandle = MelonCoroutines.Start(RerollQuestDelay("Daily"));
+        }
+        else if (type == "Weekly")
+        {
+            if (_rerollWeeklyHandle != null)
+                MelonCoroutines.Stop(_rerollWeeklyHandle);
+            _rerollWeeklyHandle = MelonCoroutines.Start(RerollQuestDelay("Weekly"));
+        }
+    }
+
+    public bool PauseRoutines()
+    {
+        return !GameState.IsRunner() || chestKeySpawned;
+    }
+
+    private void StopAllQuestCoroutines()
+    {
+        if (_rerollDailyHandle != null) { MelonCoroutines.Stop(_rerollDailyHandle); _rerollDailyHandle = null; }
+        if (_rerollWeeklyHandle != null) { MelonCoroutines.Stop(_rerollWeeklyHandle); _rerollWeeklyHandle = null; }
+        if (_checkDailyHandle != null) { MelonCoroutines.Stop(_checkDailyHandle); _checkDailyHandle = null; }
+        if (_checkWeeklyHandle != null) { MelonCoroutines.Stop(_checkWeeklyHandle); _checkWeeklyHandle = null; }
+
+        checkingDailies = false;
+        checkingWeeklies = false; ;
+    }
+
+    public IEnumerator RerollQuestDelay(String type)
+    {
+        yield return new WaitForSeconds(2f);
+
+        if (PauseRoutines())
+            yield break;
+
+        RerollQuests(type);
+    }
+
+    public void RerollQuests(String type)
+    {
+        if (type == "Daily")
+        {
+            if (!checkingDailies)
+            {
+                checkingDailies = true;
+
+                if (_checkDailyHandle != null)
+                    MelonCoroutines.Stop(_checkDailyHandle);
+
+                _checkDailyHandle = MelonCoroutines.Start(CheckRollQuests(type));
+            }
+        }
+        else if (type == "Weekly")
+        {
+            if (!checkingWeeklies)
+            {
+                checkingWeeklies = true;
+
+                if (_checkWeeklyHandle != null)
+                    MelonCoroutines.Stop(_checkWeeklyHandle);
+
+                _checkWeeklyHandle = MelonCoroutines.Start(CheckRollQuests(type));
+            }
+        }
+    }
+
+    private IEnumerator CheckRollQuests(String type)
+    {
+        if (PauseRoutines())
+        {
+            checkingDailies = false;
+            checkingWeeklies = false;
+            yield break;
+        }
+
+        bool QuestsChanged = false;
+
+        foreach (Quest q in _questsList)
+        {
+            var questTypeName = q.GetIl2CppType().FullName;
+            if ((questTypeName == "DailyQuest" && type == "Daily") || (questTypeName == "WeeklyQuest" && type == "Weekly"))
+            {
+                if (!CanBeAutoCompleted(q))
+                {
+                    RerollQuest(q, type);
+                    QuestsChanged = true;
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(0.5f);
+
+        if (PauseRoutines())
+        {
+            checkingDailies = false;
+            checkingWeeklies = false;
+            yield break;
+        }
+
+        if (type == "Daily")
+        {
+            checkingDailies = false;
+        }
+        else if (type == "Weekly")
+        {
+            checkingWeeklies = false;
+        }
+
+        if (QuestsChanged)
+            RerollQuests(type);
+        else if (type == "Daily")
+            dailiesRerolled = 0;
+    }
+
+    private bool CanBeAutoCompleted(Quest quest)
+    {
+        QuestType questType = quest.questType;
+
+        switch (questType)
+        {
+            //Quick Quests
+            case QuestType.CompleteDailyQuests:
+            case QuestType.HitRandomSilverBoxes:
+            case QuestType.PickUpCoins:
+            case QuestType.PickUpGemstones:
+                return true;
+
+            //Chest Hunt Daily vs Weekly and if relevant quest is completed
+            case QuestType.ChestHuntChests:
+                {
+                    var questTypeName = quest.GetIl2CppType().FullName;
+                    if (ChestKeyQuest.isClaimed) return true; else return false;
+                }
+
+            //Kill With Rage Mode Daily vs Weekly
+            case QuestType.KillEnemiesWithRageMode:
+                {
+                    var questTypeName = quest.GetIl2CppType().FullName;
+                    if (questTypeName == "DailyQuest") return true; else return false;
+                }
+
+            //Conditional Quests
+            case QuestType.GetMaterials:
+            case QuestType.KillEnemies:
+            case QuestType.KillGiants:
+                return ConditionalQuestCheck(quest);
+
+            //Medium Quests
+            case QuestType.BonusStage:
+            case QuestType.BonusStageSections:
+            case QuestType.Boost:
+                return (dailiesRerolled > 15);
+
+            //Long Quests
+            case QuestType.HitRandomBoxes:
+            case QuestType.UseRageMode:
+                return (dailiesRerolled > 20);
+
+            //Manual Quest
+            case QuestType.CraftTemporaryItems:
+            case QuestType.GoThroughPortals:
+            case QuestType.WindDashKills:
+                return false;
+
+            default:
+                return true; // Default case for unhandled quest types
+        }
+    }
+
+    private bool ConditionalQuestCheck(Quest quest)
+    {
+        BaseMap currentMap;
+
+        if (GameState.IsRunner())
+            currentMap = _mapController.selectedMap as BaseMap;
+        else
+            currentMap = new BaseMap(_mapController.lastRunnerMap.Pointer);
+
+        if (quest.questType == QuestType.KillGiants)
+        {
+            foreach (Enemy enemy in currentMap.currentStageEnemies)
+            {
+                if (enemy.isGiant)
+                {
+                    return true;
+                }
+            }
+        }
+        else if (quest.questType == QuestType.KillEnemies)
+        {
+            if (quest.enemyToKill.name == "enemy_king_goblin" || quest.enemyToKill.name == "enemy_soul_goblin")
+            {
+                return (dailiesRerolled > 15);
+            }
+
+            foreach (Enemy enemy in currentMap.currentStageEnemies)
+            {
+                if (enemy == quest.enemyToKill || _questManager.EnemyFromSameStageOrBelow(quest.enemyToKill, enemy))
+                {
+                    return true;
+                }
+            }
+        }
+        else if (quest.questType == QuestType.GetMaterials)
+        {
+            foreach (Enemy enemy in currentMap.currentStageEnemies)
+            {
+                if (enemy.drop != null)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private void RerollQuest(Quest quest, string type)
+    {
+        MelonCoroutines.Start(RerollQuestWithDelay(quest, type));
+    }
+
+    private IEnumerator RerollQuestWithDelay(Quest quest, String type)
+    {
+        if (PauseRoutines()) yield break;
+
+        if (quest == null) yield break;
+
+        if (type == "Daily")
+        {
+            var dq = new DailyQuest(quest.Pointer);
+
+            //            Plugin.Logger.Msg($"Rerolling Daily Quest: {dq.questType} - {dq.name}");
+
+            _dailyQuestReroll.PrepareReroll(dq);
+            yield return new WaitForSeconds(0.01f);
+
+            try
+            {
+                _dailyQuestReroll.RewardForShowing();
+                dailiesRerolled++;
+            }
+            catch (NullReferenceException)
+            {
+                Plugin.Logger.Warning("Skipped DailyQuestReroll.RewardForShowing due to null inside");
+            }
+        }
+        else if (type == "Weekly")
+        {
+            var wq = new WeeklyQuest(quest.Pointer);
+
+            _weeklyQuestReroll.PrepareReroll(wq);
+            yield return new WaitForSeconds(0.01f);
+
+            try
+            {
+                _weeklyQuestReroll.RewardForShowing();
+            }
+            catch (NullReferenceException)
+            {
+                Plugin.Logger.Warning("Skipped WeeklyQuestReroll.RewardForShowing due to null inside");
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(MapController), "ChangeMap")]
+    public class Patch_MapControllerChangeMap
+    {
+        static void Postfix(MapController __instance)
+        {
+            if (__instance == null) return;
+            OptimalQuests.Instance.DelayedReroll("Daily");
+        }
+    }
+
+    [HarmonyPatch(typeof(DailyQuestsManager), "RegenerateDailys")]
+    public class Patch_DailyQuestsManagerRegenerateDailys
+    {
+        static void Postfix(DailyQuestsManager __instance)
+        {
+            if (__instance == null) return;
+
+            if (OptimalQuests.Instance.PauseRoutines())
+                OptimalQuests.Instance.SetTriggerRegen("Daily");
+            else
+                OptimalQuests.Instance.DelayedReroll("Daily");
+        }
+    }
+    [HarmonyPatch(typeof(WeeklyQuestsManager), "RegenerateWeeklies")]
+    public class Patch_WeeklyQuestsManagerRegenerateWeeklies
+    {
+        static void Postfix(WeeklyQuestsManager __instance)
+        {
+            if (__instance == null) return;
+            if (OptimalQuests.Instance.PauseRoutines())
+                OptimalQuests.Instance.SetTriggerRegen("Weekly");
+            else
+                OptimalQuests.Instance.DelayedReroll("Weekly");
+        }
+    }
+
+    [HarmonyPatch(typeof(DailyQuestsManager), "AddQuests")]
+    public class Patch_DailyQuestsManagerAddQuests
+    {
+        static void Postfix(DailyQuestsManager __instance)
+        {
+            if (__instance == null) return;
+            OptimalQuests.Instance.DelayedReroll("Daily");
+        }
+    }
+
+    [HarmonyPatch(typeof(WeeklyQuestsManager), "AddQuests")]
+    public class Patch_WeeklyQuestsManagerAddQuests
+    {
+        static void Postfix(WeeklyQuestsManager __instance)
+        {
+            if (__instance == null) return;
+            OptimalQuests.Instance.DelayedReroll("Weekly");
+        }
+    }
+
+    [HarmonyPatch(typeof(ChestHuntKey), "OnObjectSpawn")]
+    public class Patch_ChestHuntKeyOnObjectSpawned
+    {
+        static void Postfix(ChestHuntKey __instance)
+        {
+            if (__instance == null) return;
+            OptimalQuests.Instance?.SetKeySpawn();
+        }
+    }
+
+    public void SetKeySpawn()
+    {
+        chestKeySpawned = true;
+    }
+
+}
+
