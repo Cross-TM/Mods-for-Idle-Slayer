@@ -60,10 +60,10 @@ namespace AutoJumpMod
             "AutoBoost.AutoBoost, AutoBoost",
             "_windDashEnabled"
         );
-        private readonly ModFlagChecker _armoryManagerChecker = new(
+/*        private readonly ModFlagChecker _armoryManagerChecker = new(
             "ArmoryManager.BreakWeapons, ArmoryManager"
         );
-
+*/
         private Boost _boost;
         private JumpPanel _jumpPanel;
         private PlayerMovement _pm;
@@ -142,7 +142,7 @@ namespace AutoJumpMod
         private float _lastModCheckTime;
         private bool _isBscLoadedCached;
         private bool _isAutoBoostLoadedCached;
-        private bool _isArmoryManagerLoadedCached;
+//        private bool _isArmoryManagerLoadedCached;
 
         void LateUpdate()
         {
@@ -157,8 +157,8 @@ namespace AutoJumpMod
             {
                 _isBscLoadedCached = _bscChecker.IsLoaded();
                 _isAutoBoostLoadedCached = _autoBoostChecker.IsLoaded();
-                _isArmoryManagerLoadedCached = _armoryManagerChecker.IsLoaded();
-                _lastModCheckTime = now;
+/*                _isArmoryManagerLoadedCached = _armoryManagerChecker.IsLoaded();
+*/                _lastModCheckTime = now;
             }
 
             JumpToggle();
@@ -167,7 +167,7 @@ namespace AutoJumpMod
             DetectClockFlips();
             HandleBootsLogic();
             HandleAutoJump();
-            MiniArmoryManager();
+//            MiniArmoryManager();
 #if DEBUG
         HandleMapKeys();
 #endif
@@ -191,7 +191,7 @@ namespace AutoJumpMod
         public bool ShouldSkipAtSpiritBoost() => _bscChecker.GetBoolFlag();
         public bool IsAutoBoostLoaded() => _isAutoBoostLoadedCached;
         public bool IsWindDashEnabled() => _autoBoostChecker.GetBoolFlag();
-        public bool IsArmoryManagerLoaded() => _isArmoryManagerLoadedCached;
+//        public bool IsArmoryManagerLoaded() => _isArmoryManagerLoadedCached;
 
 
         void OnDestroy() => Instance = Instance == this ? null : Instance;
@@ -382,7 +382,7 @@ namespace AutoJumpMod
             MelonCoroutines.Start(AttackGiant());
         }
 
-        private void MiniArmoryManager()
+/*        private void MiniArmoryManager()
         {
             if (IsArmoryManagerLoaded()) return;
             
@@ -434,7 +434,7 @@ namespace AutoJumpMod
             btn.onClick.Invoke();
 
             yield return null;
-        }
+        }*/
 
         private bool CanShoot() =>
             _bowPurchasedSkill.unlocked
