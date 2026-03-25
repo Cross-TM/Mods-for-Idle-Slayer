@@ -59,9 +59,6 @@
 		<None Include="Assets\manifest.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
-		<None Include="Assets\banner.png" Condition="Exists('Assets\banner.png')">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
 	</ItemGroup>
 
 </Project>
