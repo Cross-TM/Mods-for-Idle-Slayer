@@ -1,9 +1,8 @@
 using UnityEngine;
-using UnityEngine.UI;
 using Il2Cpp;
 using System.Collections;
 using MelonLoader;
-using static Il2Cpp.CasinoManager;
+using IdleSlayerMods.Common.Extensions;
 
 namespace PerfectChestHunter;
 
@@ -11,21 +10,18 @@ public class ChestKiller : MonoBehaviour
 {
     public static ChestKiller Instance;
 
+    private Achievement killMimic;
     private ChestHuntManager _chestHuntManager;
-    private bool _chestOpenerCompleted;
-    private bool _perfectChestOpenerCompleted;
-    private bool _chestHuntClosed;
     private PlayerInventory _playerInventory;
+    private bool _chestOpenerRunning;
     private bool DebugMode;
-    private bool MultiplyArmoryChests;
-
-    Achievement killMimic;
-    Achievement perfectChestHunt;
-    Achievement fivePerfectChestHunt;
-
     private bool killMimicCompleted;
-    private bool perfectChestHuntCompleted;
-    private bool fivePerfectChestHuntCompleted;
+    private bool MultiplyArmoryChests;
+    private bool PerfectChestHuntOn;
+
+    private float defaultChestOpeningDelay = 0.25f; // Delay between opening chests
+
+    private System.Random _rng = new System.Random();
 
     private void Awake()
     {
@@ -34,12 +30,21 @@ public class ChestKiller : MonoBehaviour
         _playerInventory = PlayerInventory.instance;
 
         MultiplyArmoryChests = Plugin.Settings.MultiplyArmoryChests.Value;
+        PerfectChestHuntOn = Plugin.Settings.PerfectChestsHuntOn.Value;
         InitialiseAchievements();
+    }
+
+    private void Start() {
+
+        Plugin.ModHelperInstance.CreateSettingsToggle("Open Chests Randomly/Perfectly", Plugin.Settings.PerfectChestsHuntOn,
+            _ => {
+                PerfectChestHuntOn = Plugin.Settings.PerfectChestsHuntOn.Value;
+                Plugin.Settings.PerfectChestsHuntOn.SaveEntry();
+            });
     }
 
     private void InitialiseAchievements() 
     {
-
         foreach (Achievement achievement in _playerInventory.achievements)
         {
             if (achievement.name == "achievement_that_was_fun")
@@ -47,160 +52,233 @@ public class ChestKiller : MonoBehaviour
                 killMimic = achievement;
                 killMimicCompleted = killMimic.unlocked;
             }
-            else if (achievement.name == "achievement_perfect_chest_hunt")
-            {
-                perfectChestHunt = achievement;
-                perfectChestHuntCompleted = perfectChestHunt.unlocked;
-            }
-            else if (achievement.name == "achievement_locksmith")
-            {
-                fivePerfectChestHunt = achievement;
-                fivePerfectChestHuntCompleted = fivePerfectChestHunt.unlocked;
-            }
         }
-
     }
 
     private void LateUpdate()
     {
+        if (Input.GetKeyDown(Plugin.Settings.ArmoryChestMultiplyToggleKey.Value))
+        {
+            Plugin.Settings.MultiplyArmoryChests.Value = ToggleSetting("Armory Chest Multiplying", ref MultiplyArmoryChests);
+        }
+
+
 #if DEBUG
         DebugMode = true;
-
         if (Input.GetKeyDown(KeyCode.O) && !GameState.IsChestHunt())
         {
             _chestHuntManager.StartEvent();
-
         }
-        if (Input.GetKeyDown(KeyCode.U))
-        {
-            killMimic.unlocked = false;
-            killMimicCompleted = false;
 
-            _playerInventory.perfectChestHunts = 0;
-            perfectChestHunt.unlocked = false;
-            fivePerfectChestHunt.unlocked = false;
-            perfectChestHuntCompleted = false;
-            fivePerfectChestHuntCompleted = false;
-        }
 #endif
-
     }
 
     private void Update()
     {
-
         if (!GameState.IsChestHunt())
         {
-            _chestOpenerCompleted = false;
-            _perfectChestOpenerCompleted = false;
-            _chestHuntClosed = false;
+            _chestOpenerRunning = false;
             killMimicCompleted = killMimic.unlocked;
         }
+        else if (PerfectChestHuntOn)
+        {
+            if (_chestOpenerRunning) return;
+
+            _chestOpenerRunning = true;
+
+            MelonCoroutines.Start(RunPerfectChestHuntSequence());        
+        }
+
         else
         {
-            if (!_chestOpenerCompleted)
+            // open chests randomly
+            if (!_chestOpenerRunning)
             {
-                if (!_chestHuntManager.IsVisible() || _chestHuntManager.chests.Count == 0)
-                    return; // Exit early if chests are not ready
+                _chestOpenerRunning = true;
 
-                //Plugin.Logger.Msg("Chest Event Started!");
-                LowerStats();
-
-                if (!killMimicCompleted)
-                {
-                    MelonCoroutines.Start(OpenMimicChest());
-                    _perfectChestOpenerCompleted = true;
-                }
-                else 
-                    MelonCoroutines.Start(OpenChests());
-
-                _chestOpenerCompleted = true;
-            }
-
-            if (!_perfectChestOpenerCompleted)
-            {
-                if (_chestHuntManager.perfectChests == null || _chestHuntManager.perfectChests.Count == 0)
-                    return; // Exit early if perfect chests are not ready                                
-
-                var PerfectChest = _chestHuntManager.perfectChests[2].perfectChestObject;
-                if (PerfectChest == null)
-                    return; // Exit early if perfect chest is not ready
-
-                OpenPerfectChests();
-                if (DebugMode)
-                    Plugin.Logger.Msg("Perfect Chests opened!");
-                _perfectChestOpenerCompleted = true;
-            }
-
-            if (!_chestHuntClosed)
-            {
-                GameObject cb = _chestHuntManager.closeButton;
-                if (cb != null)
-                {
-                    AnimatedButton animatedButton = cb.GetComponent<AnimatedButton>();
-                    if (animatedButton != null && animatedButton.isActiveAndEnabled)
-                    {
-                        _chestHuntManager.Close();
-                        _chestHuntClosed = true;
-                    }
-                }
+                MelonCoroutines.Start(RunRandomChestHuntSequence());
             }
         }
+    }
 
-        if (Input.GetKeyDown(Plugin.Settings.ArmoryChestMultiplyToggleKey.Value))
+    //////////////////////////////////////////////////////////////// Sequences
+    
+    
+    private IEnumerator RunPerfectChestHuntSequence()
+    {
+        yield return WaitForChestHuntInitialise();
+
+        if (!killMimicCompleted)
+            yield return (OpenMimicChest());
+        else
+            yield return (OpenNormalChestsPerfectly());
+
+        yield return WaitForPerfectChestsReady();
+        OpenOnePerfectChest();
+
+        yield return WaitThenClose();
+    }
+
+    private IEnumerator RunRandomChestHuntSequence()
+    {
+        yield return WaitForChestHuntInitialise();
+
+        yield return OpenNormalChestsRandomly();
+        yield return WaitForRandomOpenOutcome();
+
+    }
+    private IEnumerator WaitForRandomOpenOutcome()
+    {
+        while (_chestHuntManager.eventInProgress)
+            yield return null;
+
+        while (!IsCloseButtonActive() && !PerfectChestsHaveLoaded())
+            yield return null;
+
+        if (PerfectChestsHaveLoaded())
         {
-            ToggleSetting("Armory Chest Multiplying", ref MultiplyArmoryChests);
+            yield return WaitForPerfectChestsReady();
+            OpenOnePerfectChest();
         }
+
+        yield return WaitThenClose();
+
     }
 
-    private void ToggleSetting(string type, ref bool state)
+    private IEnumerator WaitForChestHuntInitialise()
     {
-        state = !state;
+        while (!_chestHuntManager.IsVisible() || _chestHuntManager.chests.Count == 0)
+            yield return null; // Hold until chests are ready
+    }
+    private IEnumerator WaitForPerfectChestsReady()
+    {
+        while (!PerfectChestsHaveLoaded())
+            yield return null;
 
-        Plugin.Logger.Msg($"{type} are: {(state ? "ON" : "OFF")}");
-        Plugin.ModHelperInstance.ShowNotification(state ? $"{type} enabled!" : $"{type} disabled!", state);
+        while (_chestHuntManager.perfectChests[2].perfectChestObject == null)
+            yield return null;
+    }
 
-        Plugin.Settings.MultiplyArmoryChests.Value = state;
+    private IEnumerator WaitThenClose()
+    {
+        while (!IsCloseButtonActive())
+            yield return null;
+
+        _chestHuntManager.Close();
     }
 
 
-    private void LowerStats()
-    {
-        fivePerfectChestHuntCompleted = fivePerfectChestHunt.unlocked;
+    //////////////////////////////////////////////////////////////// Open Procedures
 
-        if (fivePerfectChestHuntCompleted)
+
+    private IEnumerator OpenNormalChestsRandomly()
+    {
+
+        var shuffledChests = new List<Chest>(_chestHuntManager.chests.ToArray());
+
+        ShuffleChests(shuffledChests);
+
+        bool lastChestWasDupe = false;
+
+        foreach (var chest in shuffledChests)
         {
-            _playerInventory.perfectChestHunts = (int)(_playerInventory.chestHunts * 0.006) - 1;
-            if (_playerInventory.perfectChestHunts < 4)
-            {
-                _playerInventory.perfectChestHunts = 4;
-            }
-            _playerInventory.mimicsSlayed = (int)(_playerInventory.chestHunts * 2.5);
+            if (!chest.chestObject) continue;
+            if (chest.opened) continue;
+            if (DebugMode)
+                Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+
+            bool slowOpen = chest.type == ChestType.Mimic
+             || (chest.type == ChestType.DuplicateNextPick && lastChestWasDupe);
+
+            yield return OpenChest(chest.chestObject, slowOpen ? 3f : defaultChestOpeningDelay);
+
+            lastChestWasDupe = chest.type == ChestType.DuplicateNextPick;
+
+            if (!_chestHuntManager.eventInProgress) break;
+
         }
     }
 
-    private float defaultChestOpeningDelay = 0.25f; // Delay between opening chests
-
-    private IEnumerator OpenMimicChest() 
+    private IEnumerator OpenNormalChestsPerfectly()
     {
-        int i = 0;
+#if !DEBUG
+        yield return OpenAllChestsOfType(ChestType.MultiplierIncreaser, defaultChestOpeningDelay);
+#endif
+        yield return OpenDupeChests();
+
+        if (Plugin.Settings.MultiplyArmoryChests.Value)
+            yield return OpenAllChestsOfType(ChestType.ArmoryChest, defaultChestOpeningDelay);
+
+        var bestChest = GetBestMultiplierChest();
+
+        if (bestChest != null && !bestChest.opened)
+            yield return OpenChest(bestChest.chestObject, defaultChestOpeningDelay);
+
+        yield return OpenAllChestsOfType(ChestType.Mimic, defaultChestOpeningDelay, exclude: true);
+    }
+
+    private IEnumerator OpenMimicChest()
+    {
+        int mimicsOpened = 0;
 
         foreach (var chest in _chestHuntManager.chests)
         {
-            if (i >= 3) // Limit to opening only 3 Mimic chests
-            {
-                break;
-            }
-            var chestObj = chest.chestObject;
-            if (!chestObj) continue;
-            if (chest.type == ChestType.Mimic)
-            {
-                if (chest.opened) continue;
-                if (DebugMode)
-                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
-                yield return OpenChest(chestObj, defaultChestOpeningDelay);
-                i++;
-            }
+            if (!chest.chestObject) continue;
+            if (chest.type != ChestType.Mimic) continue;
+            if (chest.opened) continue;
+            if (DebugMode) Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+
+            yield return OpenChest(chest.chestObject, defaultChestOpeningDelay);
+            mimicsOpened++;
+
+            if (mimicsOpened >= 3) break;
+        }
+    }
+
+    private void OpenOnePerfectChest()
+    {
+        if (TryOpenPermanentUpgradeChest()) return;
+        OpenBestMultiplierPerfectChest();
+    }
+
+    //////////////////////////////////////////////////////////////// Open Tools
+
+    private Chest GetBestMultiplierChest()
+    {
+        Chest best = null;
+        foreach (var chest in _chestHuntManager.chests)
+        {
+            if (chest.type != ChestType.Multiplier) continue;
+            if (best == null || chest.multiplier > best.multiplier)
+                best = chest;
+        }
+        return best;
+    }
+
+    private IEnumerator OpenDupeChests()
+    {
+        bool dupeOpened = false;
+        foreach (var chest in _chestHuntManager.chests)
+        {
+            if (!chest.chestObject) continue;
+            if (chest.opened) continue;
+            if (chest.type != ChestType.DuplicateNextPick) continue;
+            if (DebugMode) Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+
+            yield return OpenChest(chest.chestObject, dupeOpened ? 3f : defaultChestOpeningDelay);
+            dupeOpened = true;
+        }
+    }
+
+    private IEnumerator OpenAllChestsOfType(ChestType type, float delay, bool exclude = false)
+    {
+        foreach (var chest in _chestHuntManager.chests)
+        {
+            if (!chest.chestObject) continue;
+            if (chest.opened) continue;
+            if (exclude ? chest.type == type : chest.type != type) continue;
+            if (DebugMode) Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
+            yield return OpenChest(chest.chestObject, delay);
         }
     }
 
@@ -222,148 +300,69 @@ public class ChestKiller : MonoBehaviour
         yield return new WaitForSeconds(chestOpeningDelay);
     }
 
-    private IEnumerator OpenChests()
+    private bool TryOpenPermanentUpgradeChest()
     {
-        bool DupeOpened = false;
-
-        // First segment: Opening DuplicateNextPick chests
-        foreach (var chest in _chestHuntManager.chests)
-        {
-            var chestObj = chest.chestObject;
-            if (!chestObj) continue;
-            if (chest.type == ChestType.DuplicateNextPick)
-            {
-                if (chest.opened) continue;
-                if (DebugMode)
-                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
-
-                if (!DupeOpened)
-                {
-                    DupeOpened = true;
-                    yield return OpenChest(chestObj, defaultChestOpeningDelay);
-                }
-                else
-                {
-                    yield return OpenChest(chestObj, 3f);
-                }
-            }
-        }
-
-        if (Plugin.Settings.MultiplyArmoryChests.Value)
-        {
-            // Second segment: Opening Armory chests
-            foreach (var chest in _chestHuntManager.chests)
-            {
-                var chestObj = chest.chestObject;
-                if (!chestObj) continue;
-                if (chest.type == ChestType.ArmoryChest)
-                {
-                    if (chest.opened) continue;
-
-                    if (DebugMode)
-                        Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
-                    yield return OpenChest(chestObj, defaultChestOpeningDelay);
-                }
-            }
-        }
-
-        // Second or third segment: Opening the best multiplier chest
-        Chest bestChest = null;
-        int bestMultiplier = int.MinValue;
-
-        foreach (var chest in _chestHuntManager.chests)
-        {
-            if (chest.type == ChestType.Multiplier)
-            {
-                if (chest.multiplier > bestMultiplier)
-                {
-                    bestMultiplier = chest.multiplier;
-                    bestChest = chest;
-                }
-            }
-        }
-
-        if (bestChest != null)
-        {
-            if (DebugMode)
-                Plugin.Logger.Msg($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
-
-            var chestObj = bestChest.chestObject;
-            if (chestObj != null && !bestChest.opened)
-            {
-                if (DebugMode)
-                    Plugin.Logger.Msg("Opening the highest multiplier chest.");
-                yield return OpenChest(chestObj, defaultChestOpeningDelay);
-            }
-        }
-
-        // Third segment: Opening all non-mimic chests
-        foreach (var chest in _chestHuntManager.chests)
-        {
-            var chestObj = chest.chestObject;
-            if (!chestObj) continue;
-            if (chest.type != ChestType.Mimic)
-            {
-                if (chest.opened) continue;
-                if (DebugMode)
-                    Plugin.Logger.Msg($"Processing chest of type: {chest.type}");
-                yield return OpenChest(chestObj, defaultChestOpeningDelay);
-            }
-        }
-    }
-
-    private void OpenPerfectChests()
-    {
-        foreach (var perfectChest in _chestHuntManager.perfectChests)
-        {
-
-            if (perfectChest.type == ChestType.PermanentUpgrade)
-            {
-                if (DebugMode)
-                    Plugin.Logger.Msg("Opening perfect chest with multiplier 4...");
-
-                var @object = perfectChest.perfectChestObject;
-                if (!@object) continue;
-
-                var perfectChestComponent = @object.GetComponent<PerfectChestObject>();
-                if (DebugMode)
-                    Plugin.Logger.Msg("Opening perfect chest...");
-                perfectChestComponent?.Open(true);
-                return;
-            }
-        }
-
-        Chest bestChest = null;
-        int bestMultiplier = int.MinValue;
-
         foreach (var chest in _chestHuntManager.perfectChests)
         {
-            if (chest.multiplier > bestMultiplier)
-            {
-                bestMultiplier = chest.multiplier;
-                bestChest = chest;
-            }
+            if (chest.type != ChestType.PermanentUpgrade) continue;
+            if (!chest.perfectChestObject) continue;
+
+            if (DebugMode) Plugin.Logger.Msg("Opening permanent upgrade chest...");
+            chest.perfectChestObject?.Open(true);
+            return true;
+        }
+        return false;
+    }
+
+    private void OpenBestMultiplierPerfectChest()
+    {
+        Chest best = null;
+        foreach (var chest in _chestHuntManager.perfectChests)
+        {
+            if (best == null || chest.multiplier > best.multiplier)
+                best = chest;
         }
 
-        if (bestChest != null)
+        if (best == null) return;
+
+        if (DebugMode) Plugin.Logger.Msg($"Highest multiplier chest found with multiplier: {best.multiplier}");
+
+        best.perfectChestObject?.Open(true);
+    }
+
+    //////////////////////////////////////////////////////////////// Utilities
+
+    private bool IsCloseButtonActive()
+    {
+        GameObject cb = _chestHuntManager.closeButton;
+        if (cb == null) return false;
+
+        AnimatedButton animatedButton = cb.GetComponent<AnimatedButton>();
+        return animatedButton != null && animatedButton.isActiveAndEnabled;
+    }
+
+    private bool PerfectChestsHaveLoaded()
+    {
+        return _chestHuntManager.perfectChests != null
+            && _chestHuntManager.perfectChests.Count > 0;
+    }
+
+    public void ShuffleChests(List<Chest> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
         {
-            if (DebugMode)
-                Plugin.Logger.Msg($"Highest multiplier chest found with multiplier: {bestChest.multiplier}");
-
-            var @object = bestChest.perfectChestObject;
-
-            var perfectChestComponent = @object.GetComponent<PerfectChestObject>();
-            if (DebugMode)
-                Plugin.Logger.Msg("Opening perfect chest...");
-            perfectChestComponent?.Open(true);
+            int j = _rng.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
         }
     }
 
-    private void LogAllAchievements()
+    private bool ToggleSetting(string type, ref bool state)
     {
-        foreach (Achievement achievement in _playerInventory.achievements)
-        {
-            Plugin.Logger.Msg($"Achievement: {achievement.localizedName}, Description: {achievement.GetDescription()}, actualName :{achievement.name}");
-        }
+        state = !state;
+
+        Plugin.Logger.Msg($"{type} are: {(state ? "ON" : "OFF")}");
+        Plugin.ModHelperInstance.ShowNotification(state ? $"{type} enabled!" : $"{type} disabled!", state);
+
+        return state;
     }
 }
