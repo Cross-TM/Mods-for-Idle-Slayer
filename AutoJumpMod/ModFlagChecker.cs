@@ -6,6 +6,7 @@ internal class ModFlagChecker(string qualifiedTypeName, string privateFieldName 
 {
     private Type _type;
     private FieldInfo _field;
+    private UnityEngine.Object _instance;
     private bool _initialized;
 
     private void Initialize()
@@ -52,12 +53,34 @@ internal class ModFlagChecker(string qualifiedTypeName, string privateFieldName 
         return generic.Invoke(null, []) as UnityEngine.Object;
     }
 
-    public bool IsLoaded() => FindInstance() != null;
+    private void RefreshInstance()
+    {
+        Initialize();
+        if (_type == null || _instance) return;
+
+        _instance = FindInstance();
+    }
+
+    public bool IsLoaded()
+    {
+        RefreshInstance();
+        return _instance;
+    }
 
     public bool GetBoolFlag()
     {
-        var inst = FindInstance();
-        if (inst == null || _field == null) return false;
-        return (bool)_field.GetValue(inst)!;
+        RefreshInstance();
+        if (!_instance || _field == null) return false;
+
+        try
+        {
+            return _field.GetValue(_instance) is true;
+        }
+        catch (Exception ex)
+        {
+            Plugin.DLog($"Could not read '{privateFieldName}' from {_type?.FullName}: {ex.Message}");
+            _instance = null;
+            return false;
+        }
     }
 }
