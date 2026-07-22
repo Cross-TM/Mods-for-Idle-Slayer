@@ -1,6 +1,5 @@
 using HarmonyLib;
 using IdleSlayerMods.Common;
-using Il2CppInterop.Runtime.Injection;
 using MelonLoader;
 using MyPluginInfo = MinionManaging.MyPluginInfo;
 using Plugin = MinionManaging.Plugin;
@@ -13,10 +12,12 @@ namespace MinionManaging;
 public class Plugin : MelonMod
 {
     internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
+    internal static Settings Settings;
     internal static ModHelper ModHelperInstance;
 
     public override void OnInitializeMelon()
     {
+        Settings = new Settings(MyPluginInfo.PLUGIN_GUID);
         LoggerInstance.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
         ModHelper.ModHelperMounted += SetModHelperInstance;
 
@@ -28,7 +29,9 @@ public class Plugin : MelonMod
 
     public override void OnSceneWasLoaded(int buildIndex, string sceneName)
     {
-        if (sceneName != "Game") return;
+        if (sceneName != "Game")
+            return;
+
         ModUtils.RegisterComponent<MinionSender>();
     }
 }

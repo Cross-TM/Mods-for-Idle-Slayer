@@ -1,8 +1,8 @@
 {
   "name": "Minion Sender",
   "author": "CrossTM",
-  "version": "2.0.0",
-  "description": "",
+  "version": "2.4.0",
+  "description": "Automatically claims, resends, and optionally prestiges selected minions.",
   "nexus_id": "",
   "donate_url": "",
   "github_url": ""
