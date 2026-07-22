@@ -1,56 +1,55 @@
-﻿﻿using HarmonyLib;
-using UnityEngine;
-using MelonLoader;
+using HarmonyLib;
 using Il2Cpp;
-using System.Diagnostics;
 
 namespace AutoRageMode;
 
-[HarmonyPatch(typeof(Horde), "OnEventStart")]
+[HarmonyPatch(typeof(Horde), nameof(Horde.OnEventStart))]
 public class HordeEventPatch
 {
-
     [HarmonyPostfix]
     public static void OnHordeEventStart()
     {
         Plugin.DLog("Horde event detected!");
 
-        if (AutoRage.Instance != null)
-        {
-            // If SoulsHordeMode is enabled and a Souls event is active, flag it to trigger Rage
-            if (AutoRage.Instance.IsSoulsHordeModeEnabled())
-            {
-                Plugin.DLog("Horde event occurred during SoulsHordeMode - flagging for Auto Rage.");
-                AutoRage.Instance.SetHordeEventActive();
-            }
-            // If SoulsHordeMode is OFF, trigger Rage immediately when a Horde event happens
-            else if (AutoRage.Instance.IsHordeModeEnabled())
-            {
-                Plugin.DLog("HordeOnlyMode is ON - Activating Rage Mode for Horde event.");
-                AutoRage.Instance.ActivateRageModeDelayed();
-            }
-        }
-        else
+        AutoRage autoRage = AutoRage.Instance;
+        if (autoRage == null)
         {
             Plugin.DLog("AutoRageMode instance is null!");
+            return;
+        }
+
+        if (autoRage.ShouldResetRageOnMegaHorde() && autoRage.IsMegaHordeActive())
+        {
+            Plugin.DLog("Mega Horde detected - applying the additional Mega Horde settings.");
+            autoRage.ActivateForMegaHorde();
+            return;
+        }
+
+        if (autoRage.IsSoulsHordeModeEnabled())
+        {
+            Plugin.DLog("Horde event occurred during SoulsHordeMode - flagging for Auto Rage.");
+            autoRage.SetHordeEventActive();
+        }
+        else if (autoRage.IsHordeModeEnabled())
+        {
+            Plugin.DLog("HordeOnlyMode is ON - Activating Rage Mode for Horde event.");
+            autoRage.ActivateRageModeDelayed();
         }
     }
 }
 
-
-[HarmonyPatch(typeof(SoulsBonus), "OnEventStart")]
+[HarmonyPatch(typeof(SoulsBonus), nameof(SoulsBonus.OnEventStart))]
 public class SoulsEventStart
 {
     [HarmonyPostfix]
-    public static void OnSoulsEventStart(SoulsBonus __instance) // Capture instance
+    public static void OnSoulsEventStart(SoulsBonus __instance)
     {
         Plugin.DLog("Souls event detected!");
-
-        AutoRage.Instance?.SetActiveEvent(__instance); // Pass instance of SoulsBonus
+        AutoRage.Instance?.SetActiveEvent(__instance);
     }
 }
 
-[HarmonyPatch(typeof(SoulsBonus), "OnEventEnd")]
+[HarmonyPatch(typeof(SoulsBonus), nameof(SoulsBonus.OnEventEnd))]
 public class SoulsEventEnd
 {
     [HarmonyPostfix]

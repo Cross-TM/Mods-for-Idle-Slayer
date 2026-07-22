@@ -1,5 +1,4 @@
-﻿using IdleSlayerMods.Common;
-using Il2CppSystem.Runtime.Serialization.Formatters.Binary;
+using IdleSlayerMods.Common;
 using MelonLoader;
 using System.Diagnostics;
 using MyPluginInfo = AutoRageMode.MyPluginInfo;
@@ -39,5 +38,4 @@ public class Plugin : MelonMod
         if (sceneName != "Game") return;
         ModUtils.RegisterComponent<AutoRage>();
     }
-
 }

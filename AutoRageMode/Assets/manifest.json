@@ -1,8 +1,8 @@
 {
   "name": "Auto Rage Mode",
   "author": "CrossTM",
-  "version": "1.1.1",
-  "description": "",
+  "version": "1.2.1",
+  "description": "Automatically activates Rage Mode for selected events, including Mega Horde and temporary item support.",
   "nexus_id": "",
   "donate_url": "",
   "github_url": ""
