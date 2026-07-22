@@ -1,8 +1,8 @@
 {
   "name": "Armory Manager",
   "author": "CrossTM - Patched by nicholasptran",
-  "version": "1.2.2",
-  "description": "Manage the Armory so it never fills up",
+  "version": "2.3.9",
+  "description": "Clean five-option Armory manager with one master switch, favorites, and safe automatic rules",
   "nexus_id": "https://www.nexusmods.com/idleslayer/mods/24",
   "donate_url": "https://paypal.me/CROSSTM",
   "github_url": "https://github.com/Cross-TM/Mods-for-Idle-Slayer/tree/main/ArmoryManager"
