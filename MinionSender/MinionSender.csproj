@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -6,35 +6,35 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <PackageId>MinionSender</PackageId>
-	  <Version>1.1.0</Version>
-	  <PlatformTarget>x64</PlatformTarget>
-	  <ModManagerRoot>$(LOCALAPPDATA)\IdleSlayerModManager</ModManagerRoot>
+    <Version>2.4.0</Version>
+    <PlatformTarget>x64</PlatformTarget>
+    <ModManagerRoot>$(LOCALAPPDATA)\IdleSlayerModManager</ModManagerRoot>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <None Include="MinionSender.csproj.user" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="LavaGang.MelonLoader" Version="0.7.0" />
     <PackageReference Include="Lib.Harmony" Version="2.3.6" />
   </ItemGroup>
 
   <ItemGroup>
-	  <Reference Include="IdleSlayerMods.Common">
-		  <HintPath>$(ModManagerRoot)\Mods\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
-	  </Reference>
-	  <Reference Include="Assembly-CSharp">
+    <Reference Include="IdleSlayerMods.Common">
+      <HintPath>$(ModManagerRoot)\Mods\IdleSlayerMods.Common\IdleSlayerMods.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp">
       <HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
-		<Reference Include="Il2Cpp">
-			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Dependencies\SupportModules\Il2Cpp.dll</HintPath>
-		</Reference>
-	  <Reference Include="Il2CppInterop.Runtime">
-		  <HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
-	  </Reference>
-	  <Reference Include="Il2Cppmscorlib">
+    <Reference Include="Il2Cpp">
+      <HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Dependencies\SupportModules\Il2Cpp.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2CppInterop.Runtime">
+      <HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\net6\Il2CppInterop.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="Il2Cppmscorlib">
       <HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
       <Private>False</Private>
     </Reference>
@@ -51,14 +51,14 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
-	<ItemGroup>
-		<None Include="Assets\manifest.json">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Include="Assets\banner.png" Condition="Exists('Assets\banner.png')">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
 
+  <ItemGroup>
+    <None Include="Assets\manifest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\banner.png" Condition="Exists('Assets\banner.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>
