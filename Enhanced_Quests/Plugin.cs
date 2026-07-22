@@ -12,10 +12,13 @@ public class Plugin : MelonMod
 {
     internal static readonly MelonLogger.Instance Logger = Melon<Plugin>.Logger;
     internal static Settings Settings;
+    internal static ModHelper ModHelperInstance;
     
     public override void OnInitializeMelon()
     {
         Settings = new(MyPluginInfo.PLUGIN_GUID);
+        ModHelper.ModHelperMounted += SetModHelperInstance;
+        HarmonyInstance.PatchAll();
         Logger.Msg($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
     }
 
@@ -23,5 +26,10 @@ public class Plugin : MelonMod
     {
         if (sceneName != "Game") return;
         ModUtils.RegisterComponent<Enhanced_Quests>();
+    }
+
+    private static void SetModHelperInstance(ModHelper instance)
+    {
+        ModHelperInstance = instance;
     }
 }
