@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <LangVersion>preview</LangVersion>
-        <Version>1.0.0</Version>
+		<Version>2.3.9</Version>
 		<PlatformTarget>x64</PlatformTarget>
 		<ModManagerRoot>$(LocalAppData)\IdleSlayerModManager</ModManagerRoot>
 	</PropertyGroup>
@@ -33,12 +33,24 @@
 			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Il2Cppmscorlib.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
+		<Reference Include="Assembly-CSharp-firstpass">
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Assembly-CSharp-firstpass.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="Il2CppSystem.Core">
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\Il2CppSystem.Core.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
 			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.CoreModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.InputLegacyModule">
 			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.InputLegacyModule.dll</HintPath>
+			<Private>False</Private>
+		</Reference>
+		<Reference Include="UnityEngine.TextRenderingModule">
+			<HintPath>$(ModManagerRoot)\ModLoader\MelonLoader\Il2CppAssemblies\UnityEngine.TextRenderingModule.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
 		<Reference Include="UnityEngine.UI">
@@ -62,6 +74,15 @@
 
 	<ItemGroup>
 	  <Folder Include="Extensions\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <InternalsVisibleTo Include="ArmoryManager.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="ArmoryManager.Tests\**\*.cs" />
+	  <None Remove="ArmoryManager.Tests\**\*" />
 	</ItemGroup>
 
 </Project>
