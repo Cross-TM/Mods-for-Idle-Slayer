@@ -22,12 +22,15 @@ namespace AutoJumpMod
         private const string SkillBonusGaps3Name = "ascension_upgrade_board_the_platforms";
         private const string SkillBowPurchasedName = "ascension_upgrade_sacred_book_of_projectiles";
         private const string SkillBowBoostName = "ascension_upgrade_stability";
+        private const float ArrowIntervalSeconds = 0.1f;
+        private const float ReferenceRefreshIntervalSeconds = 0.5f;
+        private const float DelayedJumpTimeoutSeconds = 2f;
 
         public static float OriginalArrowSpeed = -1f;
         public static float OriginalElectroSpeed = -1f;
         public static float NewArrowSpeed = -1f;
         public static float NewElectroSpeed = -1f;
-        private static readonly List<Arrow> _activeArrows = [];
+        private static readonly HashSet<Arrow> _activeArrows = [];
 
 
         public static AutoJump Instance { get; private set; }
@@ -36,8 +39,8 @@ namespace AutoJumpMod
         private bool _prevBootsUnlocked;
         private bool _bootsUnlockHandled;
         private bool _autoJump;
+        private bool _autoBoost;
         private bool _isJumping;
-        private bool _isShooting;
         private bool _didStage1Delay;
         private bool _didStage2Delay;
         private bool _isAttacking;
@@ -47,8 +50,13 @@ namespace AutoJumpMod
         private bool _bootsChanged;
         private bool dummy;
         private bool _bonusSection3Completed;
+        private bool _skillsInitialized;
+        private bool _isDestroying;
 
         private float dualChance;
+        private float _nextShotTime;
+        private float _lastReferenceRefreshTime = float.NegativeInfinity;
+        private float _lastUpdateErrorLogTime = float.NegativeInfinity;
         private int _bonusSection;
 
         // reflection-based mod checks
@@ -68,6 +76,7 @@ namespace AutoJumpMod
         private JumpPanel _jumpPanel;
         private PlayerMovement _pm;
         private PointerEventData _jumpSpot;
+        private EventSystem _eventSystem;
         private RageModeManager _rageModeManager;
         private WindDash _windDash;
         private MapController _mapCtrl;
@@ -93,16 +102,9 @@ namespace AutoJumpMod
             }
             Instance = this;
 
-            _jumpPanel = JumpPanel.instance;
-            _pm = PlayerMovement.instance;
-            _rageModeManager = RageModeManager.instance;
-            _mapCtrl = MapController.instance;
-            _bonusMapCtrl = BonusMapController.instance;
-            _playerInventory = PlayerInventory.instance;
-            _windDash = AbilitiesManager.instance.windDash;
-            _boost = AbilitiesManager.instance.boost;
-            _weaponsManager = WeaponsManager.instance;
             _autoJump = Plugin.Config.UseAutoJump.Value;
+            _autoBoost = Plugin.Config.UseAutoBoost.Value;
+            RefreshGameReferences(true);
 
             CustomAwake();
             
@@ -113,16 +115,18 @@ namespace AutoJumpMod
             if (EventSystem.current == null)
                 Plugin.DLog("An EventSystem is required.");
 
-            _jumpSpot = new PointerEventData(EventSystem.current)
-            {
-                position = new Vector2(Screen.width * JumpSpotXRatio, Screen.height)
-            };
+            EnsureJumpSpot();
+
+            if (!RefreshGameReferences(true))
+                return;
 
             InitializeSkills();
 
-            _prevBootsUnlocked = _bootsSkill.unlocked;
+            if (_bootsSkill)
+                _prevBootsUnlocked = _bootsSkill.unlocked;
 
-            var REM = RandomEventManager.instance.randomEvents;
+            var randomEventManager = RandomEventManager.instance;
+            var REM = randomEventManager ? randomEventManager.randomEvents : null;
             if (REM != null)
             {
                 foreach (var RandomEvent in REM)
@@ -146,32 +150,138 @@ namespace AutoJumpMod
 
         void LateUpdate()
         {
-            var now = Time.time;
-            if (now - _lastCleanupTime > 0.5f)
+            try
             {
-                _activeArrows.RemoveAll(a => !a || a.outOfCamera);
-                _lastCleanupTime = now;
-            }
+                if (_isDestroying || !RefreshGameReferences()) return;
 
-            if (now - _lastModCheckTime > 1f)
-            {
-                _isBscLoadedCached = _bscChecker.IsLoaded();
-                _isAutoBoostLoadedCached = _autoBoostChecker.IsLoaded();
+                EnsureJumpSpot();
+                if (_jumpSpot == null) return;
+
+                var now = Time.time;
+                if (now - _lastCleanupTime > 0.5f)
+                {
+                    _activeArrows.RemoveWhere(a => !a || a.outOfCamera);
+                    _lastCleanupTime = now;
+                }
+
+                if (now - _lastModCheckTime > 1f)
+                {
+                    _isBscLoadedCached = _bscChecker.IsLoaded();
+                    _isAutoBoostLoadedCached = _autoBoostChecker.IsLoaded();
 /*                _isArmoryManagerLoadedCached = _armoryManagerChecker.IsLoaded();
-*/                _lastModCheckTime = now;
-            }
+*/                  _lastModCheckTime = now;
+                }
 
-            JumpToggle();
-            HandleArrowSpeedOnWindDash();
-            ResetStateOnRunner();
-            DetectClockFlips();
-            HandleBootsLogic();
-            HandleAutoJump();
+                JumpToggle();
+                BoostToggle();
+                HandleAutoBoost();
+                HandleArrowSpeedOnWindDash();
+                ResetStateOnRunner();
+                DetectClockFlips();
+                HandleBootsLogic();
+                HandleAutoJump(now);
 //            MiniArmoryManager();
 #if DEBUG
-        HandleMapKeys();
+                HandleMapKeys();
 #endif
-            CustomBuild();
+                CustomBuild();
+            }
+            catch (Exception ex)
+            {
+                // Never let a transient Unity reference become an exception on every frame.
+                var now = Time.realtimeSinceStartup;
+                if (now - _lastUpdateErrorLogTime >= 10f)
+                {
+                    Plugin.Logger.Error($"AutoJump update skipped after {ex.GetType().Name}: {ex.Message}");
+                    _lastUpdateErrorLogTime = now;
+                }
+
+                InvalidateGameReferences();
+            }
+        }
+
+        private void InvalidateGameReferences()
+        {
+            _jumpPanel = null;
+            _pm = null;
+            _rageModeManager = null;
+            _mapCtrl = null;
+            _bonusMapCtrl = null;
+            _playerInventory = null;
+            _windDash = null;
+            _boost = null;
+            _weaponsManager = null;
+            _skillsInitialized = false;
+            _bootsSkill = null;
+            _bonusStage2Skill = null;
+            _bonusGaps2Skill = null;
+            _bonusStage3Skill = null;
+            _bonusGaps3Skill = null;
+            _bowPurchasedSkill = null;
+            _bowBoostSkill = null;
+            _activeArrows.Clear();
+            _lastReferenceRefreshTime = float.NegativeInfinity;
+        }
+
+        private bool RefreshGameReferences(bool force = false)
+        {
+            var referencesReady = _jumpPanel
+                                  && _pm
+                                  && _rageModeManager
+                                  && _mapCtrl
+                                  && _bonusMapCtrl
+                                  && _playerInventory
+                                  && _windDash
+                                  && _boost;
+            if (referencesReady) return true;
+
+            var now = Time.realtimeSinceStartup;
+            if (!force && now - _lastReferenceRefreshTime < ReferenceRefreshIntervalSeconds)
+                return false;
+
+            _lastReferenceRefreshTime = now;
+            _jumpPanel = JumpPanel.instance;
+            _pm = PlayerMovement.instance;
+            _rageModeManager = RageModeManager.instance;
+            _mapCtrl = MapController.instance;
+            _bonusMapCtrl = BonusMapController.instance;
+            _playerInventory = PlayerInventory.instance;
+            _weaponsManager = WeaponsManager.instance;
+
+            var abilities = AbilitiesManager.instance;
+            _windDash = abilities ? abilities.windDash : null;
+            _boost = abilities ? abilities.boost : null;
+
+            if (_playerInventory && (!_skillsInitialized || !_bootsSkill))
+                InitializeSkills();
+
+            return _jumpPanel
+                   && _pm
+                   && _rageModeManager
+                   && _mapCtrl
+                   && _bonusMapCtrl
+                   && _playerInventory
+                   && _windDash
+                   && _boost;
+        }
+
+        private void EnsureJumpSpot()
+        {
+            var eventSystem = EventSystem.current;
+            if (eventSystem == null)
+            {
+                _eventSystem = null;
+                _jumpSpot = null;
+                return;
+            }
+
+            if (_jumpSpot != null && _eventSystem == eventSystem) return;
+
+            _eventSystem = eventSystem;
+            _jumpSpot = new PointerEventData(eventSystem)
+            {
+                position = new Vector2(Screen.width * JumpSpotXRatio, Screen.height)
+            };
         }
 
         // speeds up all on-screen arrows when windDash just activated
@@ -181,25 +291,43 @@ namespace AutoJumpMod
             if (windActive && !_prevWindDashActive)
             {
                 foreach (var arrow in _activeArrows)
-                    ChangeArrowSpeed(arrow);
+                {
+                    if (arrow)
+                        ChangeArrowSpeed(arrow);
+                }
             }
             _prevWindDashActive = windActive;
         }
 
 
         public bool IsBscLoaded() => _isBscLoadedCached;
-        public bool ShouldSkipAtSpiritBoost() => _bscChecker.GetBoolFlag();
+        public bool ShouldSkipAtSpiritBoost() => _isBscLoadedCached && _bscChecker.GetBoolFlag();
         public bool IsAutoBoostLoaded() => _isAutoBoostLoadedCached;
-        public bool IsWindDashEnabled() => _autoBoostChecker.GetBoolFlag();
+        public bool IsWindDashEnabled() => _isAutoBoostLoadedCached && _autoBoostChecker.GetBoolFlag();
 //        public bool IsArmoryManagerLoaded() => _isArmoryManagerLoadedCached;
 
 
-        void OnDestroy() => Instance = Instance == this ? null : Instance;
+        void OnDestroy()
+        {
+            _isDestroying = true;
+            _activeArrows.Clear();
+
+            if (dual)
+                dual.chance = dualChance;
+            if (_bootsChanged && _bootsSkill && _bootsPurchased)
+                _bootsSkill.unlocked = true;
+
+            Instance = Instance == this ? null : Instance;
+        }
 
         private void InitializeSkills()
         {
+            if (!_playerInventory || _playerInventory.ascensionSkills == null) return;
+
             foreach (var skill in _playerInventory.ascensionSkills)
             {
+                if (skill == null) continue;
+
                 switch (skill.name)
                 {
                     case SkillBootsName:
@@ -232,6 +360,8 @@ namespace AutoJumpMod
                         break;
                 }
             }
+
+            _skillsInitialized = true;
         }
         private void ResetStateOnRunner()
         {
@@ -246,8 +376,10 @@ namespace AutoJumpMod
 
             var currentMap = _mapCtrl.CurrentBonusMap();
             var inStage1 = GameState.IsBonus()
+                           && currentMap != null
                            && currentMap.id == Maps.list.BonusStage.id;
             var inStage3 = GameState.IsBonus()
+                           && currentMap != null
                            && currentMap.id == Maps.list.BonusStage3.id;
 
             if ((inStage1 || inStage3) && !_wasClockVisibleLastFrame && showTime && _bonusMapCtrl.currentSectionIndex == _bonusSection)
@@ -257,6 +389,8 @@ namespace AutoJumpMod
 
         private void HandleBootsLogic()
         {
+            if (!_bootsSkill) return;
+
             if (!_bootsUnlockHandled)
             {
                 var nowUnlocked = _bootsSkill.unlocked;
@@ -268,10 +402,13 @@ namespace AutoJumpMod
                 _prevBootsUnlocked = nowUnlocked;
             }
 
+            var currentMap = _mapCtrl.CurrentBonusMap();
             var inStage3 = GameState.IsBonus()
-                           && _mapCtrl.CurrentBonusMap() == Maps.list.BonusStage3;
+                           && currentMap != null
+                           && currentMap == Maps.list.BonusStage3;
             var inStage2 = GameState.IsBonus()
-                           && _mapCtrl.CurrentBonusMap() == Maps.list.BonusStage2;
+                           && currentMap != null
+                           && currentMap == Maps.list.BonusStage2;
 
             if (!_autoJump || !AutoBonusLevel()) return;
             
@@ -312,22 +449,49 @@ namespace AutoJumpMod
             
             _autoJump = !_autoJump;
             Plugin.Logger.Msg($"AutoJump is: {(_autoJump ? "ON" : "OFF")} ");
-            Plugin.ModHelperInstance.ShowNotification(
+            Plugin.ModHelperInstance?.ShowNotification(
                 _autoJump ? "Auto Jump enabled!" : "Auto Jump disabled!",
                 _autoJump
             );
             Plugin.Config.UseAutoJump.Value = _autoJump;
         }
 
-        private void HandleAutoJump()
+        private void BoostToggle()
+        {
+            if (!Input.GetKeyDown(Plugin.Config.AutoBoostToggleKey.Value)) return;
+
+            _autoBoost = !_autoBoost;
+            Plugin.Logger.Msg($"AutoBoost is: {(_autoBoost ? "ON" : "OFF")} ");
+            Plugin.ModHelperInstance?.ShowNotification(
+                _autoBoost ? "Auto Boost enabled!" : "Auto Boost disabled!",
+                _autoBoost
+            );
+            Plugin.Config.UseAutoBoost.Value = _autoBoost;
+        }
+
+        private void HandleAutoBoost()
+        {
+            if (!_autoBoost
+                || !_boost
+                || !_boost.Unlocked()
+                || _boost.GetCurrentCooldown() != 0f
+                || !GameState.IsRunner()) return;
+
+            _boost.Activate();
+            _boost.currentCd = _boost.GetCooldown();
+        }
+
+        private void HandleAutoJump(float now)
         {
 
             if (!_autoJump) return;
 
             var currentMap = _mapCtrl.CurrentBonusMap();
             var inStage1 = GameState.IsBonus()
+                           && currentMap != null
                            && currentMap.id == Maps.list.BonusStage.id;
             var inStage3 = GameState.IsBonus()
+                           && currentMap != null
                            && currentMap.id == Maps.list.BonusStage3.id;
 
             if (!inStage3 || _bonusSection != 2)
@@ -364,22 +528,16 @@ namespace AutoJumpMod
                 ShortSingleJump();
             }
 
-            if (GameState.IsRunner() && CanShoot())
+            if (GameState.IsRunner() && CanShoot() && now >= _nextShotTime)
             {
-                if (_pm.IsGrounded())
-                    _pm.ShootArrow();
-
-                if (!_isShooting)
-                {
-                    _isShooting = true;
-                    MelonCoroutines.Start(ShootArrows());
-                }
+                _pm.ShootArrow();
+                _nextShotTime = now + ArrowIntervalSeconds;
             }
 
             //If attacking something with the sword
             if (!GameState.IsRunner() || _pm.isMoving || _isAttacking) return;
             _isAttacking = true;
-            MelonCoroutines.Start(AttackGiant());
+            AttackGiant();
         }
 
 /*        private void MiniArmoryManager()
@@ -437,7 +595,9 @@ namespace AutoJumpMod
         }*/
 
         private bool CanShoot() =>
-            _bowPurchasedSkill.unlocked
+            _bowPurchasedSkill
+            && _bowBoostSkill
+            && _bowPurchasedSkill.unlocked
             && (_bowBoostSkill.unlocked || !_boost.IsActive())
             && !_pm.bowDisabled
             && !_windDash.IsActive()
@@ -457,6 +617,12 @@ namespace AutoJumpMod
 
         private void ShortSingleJump()
         {
+            if (!_jumpPanel || _jumpSpot == null)
+            {
+                _isJumping = false;
+                return;
+            }
+
             _jumpPanel.OnPointerDown(_jumpSpot);
             _jumpPanel.OnPointerUp(_jumpSpot);
             _isJumping = false;
@@ -464,9 +630,16 @@ namespace AutoJumpMod
 
         private IEnumerator LargeSingleJump()
         {
+            if (!_jumpPanel || _jumpSpot == null)
+            {
+                _isJumping = false;
+                yield break;
+            }
+
             _jumpPanel.OnPointerDown(_jumpSpot);
             yield return new WaitForSeconds(0.15f);
-            _jumpPanel.OnPointerUp(_jumpSpot);
+            if (!_isDestroying && _jumpPanel)
+                _jumpPanel.OnPointerUp(_jumpSpot);
             _isJumping = false;
         }
 
@@ -474,10 +647,24 @@ namespace AutoJumpMod
         {
 
             yield return new WaitForSeconds(0.5f);
+            var deadline = Time.realtimeSinceStartup + DelayedJumpTimeoutSeconds;
+
             // hold off jumping
-            while (_pm.IsGrounded())
+            while (!_isDestroying && _autoJump && GameState.IsBonus() && _pm && _pm.IsGrounded())
             {
+                if (Time.realtimeSinceStartup >= deadline)
+                {
+                    _isJumping = false;
+                    yield break;
+                }
+
                 yield return null;
+            }
+
+            if (_isDestroying || !_autoJump || !GameState.IsBonus() || !_pm)
+            {
+                _isJumping = false;
+                yield break;
             }
 
             // now do the normal short jump
@@ -487,19 +674,15 @@ namespace AutoJumpMod
             _isJumping = false;
         }
 
-        private IEnumerator ShootArrows()
+        private void AttackGiant()
         {
-            _pm.ShootArrow();
-            yield return new WaitForSeconds(0.1f);
-            _isShooting = false;
-        }
+            if (_jumpPanel && _jumpSpot != null)
+            {
+                _jumpPanel.OnPointerDown(_jumpSpot);
+                _jumpPanel.OnPointerUp(_jumpSpot);
+            }
 
-        private IEnumerator AttackGiant()
-        {
-            _jumpPanel.OnPointerDown(_jumpSpot);
-            _jumpPanel.OnPointerUp(_jumpSpot);
             _isAttacking = false;
-            yield return null;
         }
 
         [HarmonyPatch(typeof(RandomBox), nameof(RandomBox.OnObjectSpawn))]
@@ -508,22 +691,29 @@ namespace AutoJumpMod
             [HarmonyPostfix]
             public static void Postfix(RandomBox __instance)
             {
-                if (__instance == null) return;
+                var instance = Instance;
+                if (__instance == null || !instance) return;
 
-                if (GameState.IsBonus() && Instance.BootsPurchased)
-                    Instance.LockBoots();
+                if (GameState.IsBonus() && instance.BootsPurchased)
+                    instance.LockBoots();
 
-                if (Instance._bonusSection == 3)
-                    Instance._bonusSection3Completed = true;
+                if (instance._bonusSection == 3)
+                    instance._bonusSection3Completed = true;
             }
         }
-        private void LockBoots() => _bootsSkill.unlocked = false;
+        private void LockBoots()
+        {
+            if (_bootsSkill)
+                _bootsSkill.unlocked = false;
+        }
 
         [HarmonyPatch(typeof(Arrow), nameof(Arrow.Awake))]
         static class Patch_Arrow_Awake
         {
             static void Postfix(Arrow __instance)
             {
+                if (!__instance) return;
+
                 if (OriginalArrowSpeed < 0f)
                 {
                     OriginalArrowSpeed = __instance.speed;
@@ -532,7 +722,9 @@ namespace AutoJumpMod
                     NewArrowSpeed = __instance.speed * 1.5f;
                     NewElectroSpeed = __instance.electroShotSpeed * 1.5f;
 
-                    Instance.ChangeArrowSpeed(__instance);
+                    var instance = Instance;
+                    if (instance)
+                        instance.ChangeArrowSpeed(__instance);
                 }
             }
         }
@@ -543,10 +735,11 @@ namespace AutoJumpMod
             [HarmonyPostfix]
             public static void Postfix(Arrow __instance)
             {
-                if (!__instance) return;
+                var instance = Instance;
+                if (!__instance || !instance) return;
 
                 if (NewArrowSpeed > 0f)
-                    Instance.ChangeArrowSpeed(__instance);
+                    instance.ChangeArrowSpeed(__instance);
                 _activeArrows.Add(__instance);
             }
 
@@ -554,6 +747,8 @@ namespace AutoJumpMod
         
         private void ChangeArrowSpeed(Arrow arrow)
         {
+            if (!arrow || !_windDash || OriginalArrowSpeed < 0f) return;
+
             if (IsWindDashEnabled() && _windDash.GetCooldown() < 1)
             {
                 arrow.speed = NewArrowSpeed;
@@ -674,7 +869,7 @@ namespace AutoJumpMod
 
         private void CustomStart()
         { 
-            if (IsCustomBuild)
+            if (IsCustomBuild && _playerInventory)
                 _playerDecreaseRandomBoxCoinsChances = _playerInventory.decreaseRandomBoxCoinsChances;            
         }
 
@@ -688,7 +883,7 @@ namespace AutoJumpMod
             if (!GameState.IsRunner() || _pm.isMoving || _isAttacking || !_hordeEventPause) return;
             
             _isAttacking = true;
-            MelonCoroutines.Start(AttackGiant());
+            AttackGiant();
         }
 
         private void HandleShootingToggle()
@@ -697,7 +892,7 @@ namespace AutoJumpMod
             
             _shootingDisabled = !_shootingDisabled;
             Plugin.Logger.Msg($"Shooting is: {(_shootingDisabled ? "OFF" : "ON")} ");
-            Plugin.ModHelperInstance.ShowNotification(
+            Plugin.ModHelperInstance?.ShowNotification(
                 _shootingDisabled ? "Shooting disabled!" : "Shooting enabled!",
                 _shootingDisabled
             );
